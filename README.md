@@ -6,18 +6,46 @@
 
 > 這是遠端 Runtime 用戶端。安裝後不用另外下載 Node.js、Python、Homebrew、Codex Mac 執行器、Computer Use MCP 或瀏覽器；第一次使用仍須填入可連線、已登入的遠端 Runtime，並授予 macOS 所需權限。它不包含免費 AI 帳號或離線模型。
 
-## 下載與安裝
+## 快速開始 (Quick Start)
 
-到這個儲存庫的 **Releases** 頁，下載 `AgentBridge-Studio-0.4.7-arm64.dmg`。DMG 放在 Release 附件，請勿將它提交至原始碼儲存庫。
+你可以選擇直接下載打包好的 DMG 執行，或透過 Git Clone 從原始碼直接執行。
+
+### 方式一：Git Clone 直接在任何電腦執行（推薦開發者）
+
+複製專案並執行內建的一鍵啟動腳本：
+
+```sh
+git clone https://github.com/iancheng64-cmd/AgentBridgeStudio.git
+cd AgentBridgeStudio
+./start.sh
+```
+
+或使用 npm：
+
+```sh
+git clone https://github.com/iancheng64-cmd/AgentBridgeStudio.git
+cd AgentBridgeStudio
+npm install
+npm start
+```
+
+> **說明**：`./start.sh` 與 `npm start` 會自動檢測環境、安裝依賴、編譯 TypeScript/Vite，並配置 Playwright 瀏覽器運行環境，即使初次 Clone 也能一鍵完整啟動。
+> 若需使用原生 macOS Computer Use（滑鼠點擊/畫面辨識），請確保系統已安裝 Xcode Command Line Tools（執行 `xcode-select --install`）。
+
+### 方式二：下載打包好的 DMG 安裝檔（免編譯）
+
+到這個儲存庫的 **[Releases](https://github.com/iancheng64-cmd/AgentBridgeStudio/releases)** 頁，下載最新版 `AgentBridge-Studio-0.4.7-arm64.dmg`。
 
 1. 打開 DMG，將 **AgentBridge Studio** 拖到 **Applications**。
 2. 從「應用程式」開啟 App；不要直接在 DMG 中執行。
-3. 到「設定 → 連線與 Agent」，新增遠端設備、填入 SSH 資訊，選擇 Codex 或 Claude Code。
-4. 選擇這台 Mac 的工作資料夾，連接 Runtime。首次連線需核對 SSH 主機指紋。
-5. 如需看螢幕、點擊或輸入，到「電腦與工具」請求並檢查「輔助使用」及「螢幕錄製」權限。
-6. 在對話框輸入工作；工具活動會顯示執行位置及結果。
-
-此版本的本機產物是 **ad-hoc 簽章、尚未 Apple 公證**。從網路下載時 macOS 可能要求在「系統設定 → 隱私權與安全性」明確允許開啟。不需要關閉 Gatekeeper 或 SIP。要發布沒有未驗證開發者提示的版本，維護者必須以 Developer ID 簽章並完成公證。請以各 Release 的簽章狀態為準。
+3. **若 macOS 出現安全性提示（無法打開／已損毀）**，可於終端機執行解除隔離：
+   ```sh
+   xattr -cr "/Applications/AgentBridge Studio.app"
+   ```
+   或前往「系統設定 → 隱私權與安全性」點選「仍要打開」。
+4. 到「設定 → 連線與 Agent」，新增遠端設備、填入 SSH 資訊，選擇 Codex 或 Claude Code。
+5. 選擇這台 Mac 的工作資料夾，連接 Runtime。首次連線需核對 SSH 主機指紋。
+6. 如需看螢幕、點擊或輸入，到「電腦與工具」請求並檢查「輔助使用」及「螢幕錄製」權限。
 
 詳細步驟及故障排除：[安裝指南](docs/INSTALLATION.md)。
 

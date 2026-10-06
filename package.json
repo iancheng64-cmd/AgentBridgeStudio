@@ -6,6 +6,8 @@
   "license": "MIT",
   "main": "dist-main/main.js",
   "scripts": {
+    "start": "node scripts/start.cjs",
+    "setup": "node scripts/setup.cjs",
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && AGENTBRIDGE_DEV_URL=http://127.0.0.1:5173 electron .\"",
     "build:computer-use": "cd vendor/open-codex-computer-use && swift build -c release",
     "build": "tsc -p tsconfig.json --noEmit && vite build && tsc -p tsconfig.main.json",

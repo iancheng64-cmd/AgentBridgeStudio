@@ -8,7 +8,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DOCS = {'INSTALLATION.md', 'ARCHITECTURE.md', 'RELEASING.md', 'RELEASE_NOTES.md', 'RELEASE_ACCEPTANCE.md'}
-METADATA = {'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitignore', 'package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.main.json', 'vite.config.ts'}
+METADATA = {'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', '.gitignore', 'package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.main.json', 'vite.config.ts', 'start.sh'}
 
 def public_file(file):
     relative = file.relative_to(ROOT)

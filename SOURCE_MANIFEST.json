@@ -12,8 +12,8 @@
     "sha256": "d7fb10c47937bd098b6aee25d6390e636c4a3b38f8a0a5a768b486b51e5886f9"
   },
   "README.md": {
-    "bytes": 5766,
-    "sha256": "0fcfd22ac65b89d3162556035cfaf2f79532538e212099e15ea51ce1da5ee33f"
+    "bytes": 6508,
+    "sha256": "8f838c372d1c49a7607c1b247e30607714ccc83356481262fdb51a32533961e6"
   },
   "THIRD_PARTY_NOTICES.md": {
     "bytes": 1662,
@@ -28,8 +28,8 @@
     "sha256": "2e3a8328d0759c61b095f32aec08fafe472e05c88c5a1f7a71fb931657df6a4d"
   },
   "docs/INSTALLATION.md": {
-    "bytes": 3241,
-    "sha256": "e7b156336f91e6ed057c937e41a67f43e246c065d83e58049c38d133951773e9"
+    "bytes": 3363,
+    "sha256": "9a5afae3f2fe55dabefeb87ab9b5618c59dca21def5563ce020897fd4fb0e319"
   },
   "docs/RELEASE_ACCEPTANCE.md": {
     "bytes": 2836,
@@ -48,8 +48,8 @@
     "sha256": "d3fc71eca4165c498115b4fc84b893a822fd082d14bbd9a24efce7d990a31840"
   },
   "package.json": {
-    "bytes": 4708,
-    "sha256": "952baa071b3170435fbe286f801c94691d0fbe5359b2a29eb3eb1adffb37089d"
+    "bytes": 4786,
+    "sha256": "30cd911fe2c273b6f69bbdf06ea5515c300ac8bd561e9fa447914b886772c214"
   },
   "scripts/after-pack.cjs": {
     "bytes": 734,
@@ -68,8 +68,8 @@
     "sha256": "dee2d844f6d0d188d0e8baaee0e968eb295adedb7d5a506ae2f67f71196573a5"
   },
   "scripts/package-public.py": {
-    "bytes": 3856,
-    "sha256": "e4943b52c31aedc68b6042542ad5a68c234dffd0cd0befe0119643a60b9e8c1b"
+    "bytes": 3868,
+    "sha256": "b5f8fb47d2595107cce33c84e3055710002c4a5773d1e992efed5737afbf729d"
   },
   "scripts/prepare-browser.cjs": {
     "bytes": 1531,
@@ -99,9 +99,17 @@
     "bytes": 1562,
     "sha256": "ac3aac0ca0eadf63c5f86ddb44746427f96580dc8ce144320e85d458a527f332"
   },
+  "scripts/setup.cjs": {
+    "bytes": 2188,
+    "sha256": "cb73645187067a545fb487007b4e0696d7733a8c63d2fd75e5ca6fe5877a53ef"
+  },
   "scripts/sign-mac-app.py": {
     "bytes": 1446,
     "sha256": "91a8d1d6dde65109821f492f0c872e9948932faf0cd08cceb72cb8b071623a56"
+  },
+  "scripts/start.cjs": {
+    "bytes": 1257,
+    "sha256": "2b2da9f064ac4194c36c57a0aefb6b58b84be2de5e22bc234fbd5f0189f3469e"
   },
   "src/main/agent-orchestrator.ts": {
     "bytes": 10170,
@@ -326,6 +334,10 @@
   "src/renderer/vite-env.d.ts": {
     "bytes": 38,
     "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+  },
+  "start.sh": {
+    "bytes": 773,
+    "sha256": "7c4a5ceaf3d95ccdc5f41192cebcdd76563e9d472ed9ac8a47dba0446a2c874d"
   },
   "tests/agent-orchestrator.cjs": {
     "bytes": 5774,
