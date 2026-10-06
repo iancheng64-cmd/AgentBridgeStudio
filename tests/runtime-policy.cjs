@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const { macThreadConfig, validateMacMcpInventory, isVerifiedExecutorVersion } = require('../dist-main/runtime-policy.js');
+const { macThreadConfig, validateMacMcpInventory, needsMacEnvironmentPreflight, isVerifiedExecutorVersion } = require('../dist-main/runtime-policy.js');
 const { appServerCommand } = require('../dist-main/app-server-rpc.js');
 const { runtimeInput } = require('../dist-main/runtime-attachments.js');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agentbridge-policy-'));
@@ -51,4 +51,34 @@ test('attachments send image bytes and retain ordinary files as Mac references w
 test('executor version support is an exact tested allowlist, never a semver range', () => {
   assert.equal(isVerifiedExecutorVersion('0.159.2'), true); assert.equal(isVerifiedExecutorVersion('0.160.0'), true);
   for (const version of ['0.160.1','0.160.0-beta.1','0.161.0','unknown','']) assert.equal(isVerifiedExecutorVersion(version), false);
+});
+
+test('resume preflight accepts an empty selection and rejects missing or foreign environments', () => {
+  assert.equal(needsMacEnvironmentPreflight({ environments: [] }, 'mac'), true);
+  assert.equal(needsMacEnvironmentPreflight({ environments: [{ environmentId: 'mac' }] }, 'mac'), false);
+  for (const thread of [undefined, {}, { environments: null }, { environments: {} }]) {
+    assert.throws(() => needsMacEnvironmentPreflight(thread, 'mac'), /未提供/);
+  }
+  for (const environments of [[{ environmentId: 'windows' }], [{ environmentId: 'mac' }, { environmentId: 'windows' }], [null], [{}]]) {
+    assert.throws(() => needsMacEnvironmentPreflight({ environments }, 'mac'), /其他/);
+  }
+});
+
+test('inactive Mac inventory exception allows only an explicitly requested empty disabled Mac entry', () => {
+  const disabled = name => ({ name, runtimeStatus: 'disabled', tools: {}, resources: [], resourceTemplates: [] });
+  const mac = disabled('mac');
+  const options = { allowInactiveMac: true };
+  assert.throws(() => validateMacMcpInventory([disabled('remote'), mac], 'mac'), /未載入/);
+  validateMacMcpInventory([disabled('remote'), mac], 'mac', options);
+  for (const entry of [
+    { ...mac, runtimeStatus: 'connected' }, { ...mac, runtimeStatus: 'failed' },
+    { ...mac, toolsError: 'failed' }, { ...mac, tools: { unexpected: {} } },
+    { ...mac, resources: [{}] }, { ...mac, resourceTemplates: [{}] }
+  ]) assert.throws(() => validateMacMcpInventory([entry], 'mac', options), /未載入/);
+  assert.throws(() => validateMacMcpInventory([disabled('remote')], 'mac', options), /未載入/);
+  for (const entry of [
+    { ...disabled('remote'), runtimeStatus: 'connected' },
+    { ...disabled('remote'), tools: { remote_shell: {} } },
+    { ...disabled('remote'), resources: [{}] }, { ...disabled('remote'), resourceTemplates: [{}] }
+  ]) assert.throws(() => validateMacMcpInventory([entry, mac], 'mac', options), /非 Mac/);
 });

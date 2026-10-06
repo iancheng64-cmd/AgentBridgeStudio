@@ -43,13 +43,23 @@ export function macThreadConfig(config: any, server: { name: string; url: string
   overrides.mcp_servers = mcpServers;
   return overrides;
 }
-export function validateMacMcpInventory(data: any[], serverName?: string) {
+export function needsMacEnvironmentPreflight(thread: any, environmentId: string) {
+  if (!thread || !Array.isArray(thread.environments)) throw new Error("Runtime 未提供可驗證的對話執行環境。");
+  if (thread.environments.some((environment: any) => !environment || environment.environmentId !== environmentId)) throw new Error("對話仍綁定其他執行環境；請重新連線後再接續。");
+  return thread.environments.length === 0;
+}
+export function validateMacMcpInventory(data: any[], serverName?: string, options: { allowInactiveMac?: boolean } = {}) {
   if (!Array.isArray(data)) throw new Error("Runtime MCP 工具清單格式無效。");
   for (const item of data) {
     if (item.name !== serverName && (item.runtimeStatus !== "disabled" || Object.keys(item.tools || {}).length || item.resources?.length || item.resourceTemplates?.length)) throw new Error(`Runtime 仍暴露非 Mac 工具：${String(item.name).slice(0,120)}（狀態 ${String(item.runtimeStatus).slice(0,40)}，工具 ${Object.keys(item.tools || {}).length}）；已停止對話以避免在遠端執行。`);
   }
   if (serverName) {
     const local = data.find(item => item.name === serverName);
+    // An unloaded 0.160 thread resumes with no selected environments. Its
+    // explicitly environment-bound Mac server is inert until turn/start.
+    // Permit only that exact empty, disabled entry; the caller must also
+    // verify this same config on a separate Mac-bound ephemeral thread.
+    if (options.allowInactiveMac && local?.runtimeStatus === "disabled" && !local.toolsError && !Object.keys(local.tools || {}).length && !local.resources?.length && !local.resourceTemplates?.length) return;
     if (!local || local.toolsError || !Object.keys(local.tools || {}).some(name => name.includes("mac_fs_read"))) throw new Error("Runtime 尚未載入 Mac 工具；請重新連線。");
   }
 }

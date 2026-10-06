@@ -1,3 +1,9 @@
+# Unreleased
+
+- Fix Codex 0.160.0 conversations failing with "Runtime 尚未載入 Mac 工具；請重新連線。" after reconnecting and resuming an unloaded thread. Before starting a turn, verify the current Mac route on an ephemeral thread when the resumed thread has no selected environment, then release that probe and explicitly bind the original turn to this Mac.
+- Apply the same verification to background discussion turns. Foreign environments, exposed remote tools, failed Mac tools and unverifiable environment selections still block inference.
+- This source fix requires a rebuilt App. The existing 0.4.7 Release DMG is unchanged.
+
 # 0.4.7
 
 - Self-contained Apple Silicon DMG: Electron/Node, Codex 0.160.0 executor, native computer helpers and version-matched browser.
