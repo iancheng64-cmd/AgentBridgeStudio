@@ -1,10 +1,67 @@
 # AgentBridge Studio
 
+[繁體中文](README.md) · [English](README_EN.md)
+
 在 Mac 上與 Codex、Claude Code 對話，讓 Agent 處理**這台 Mac** 的檔案、命令、應用程式與網頁。模型 Runtime 與登入保留在你選擇的遠端主機，工作工具在本機執行。
 
 **版本 0.4.7 · Apple Silicon · macOS 13 或更新版本**
 
 > 這是遠端 Runtime 用戶端。安裝後不用另外下載 Node.js、Python、Homebrew、Codex Mac 執行器、Computer Use MCP 或瀏覽器；第一次使用仍須填入可連線、已登入的遠端 Runtime，並授予 macOS 所需權限。它不包含免費 AI 帳號或離線模型。
+
+## 🏗️ 架構與實現原理 (Architecture & How It Works)
+
+AgentBridge Studio 採用 **「大腦與手腳分離 (Split-Execution)」** 的雙端解耦設計：**遠端主機負責 AI 模型推理與對話上下文，本機 Mac 負責安全執行真實世界工具與系統操作**。
+
+```mermaid
+flowchart TD
+    subgraph Local["🖥️ 使用者 Mac (Local Client)"]
+        UI["桌面應用介面 (Electron / React 19)"]
+        Core["本機執行核心 (Local Executor)"]
+        
+        subgraph Tools["本機工具箱 (Local Tools)"]
+            FS["檔案與 Shell (Workspace 沙盒)"]
+            CU["原生 Computer Use (Swift / AXUIElement)"]
+            Browser["獨立 Playwright (Chromium 隔離無痕)"]
+            MCPGateway["本機 MCP 通訊網關 (127.0.0.1 Loopback)"]
+        end
+        
+        UI <--> Core
+        Core --> Tools
+    end
+
+    subgraph Tunnel["🔒 加密通訊通道"]
+        SSH["SSH 反向端口轉發 (Reverse Loopback Tunnel)"]
+    end
+
+    subgraph Remote["☁️ 遠端主機 (Remote Runtime)"]
+        Daemon["Codex 0.160.0 App-Server / Claude Code CLI"]
+        LLM["AI 模型提供商 (OpenAI / Anthropic API)"]
+        Daemon <--> LLM
+    end
+
+    UI <-- SSH 認證連線 --> Daemon
+    Daemon <-- 工具呼叫轉發 --> SSH --> Core
+```
+
+### 核心實現原理
+
+1. **遠端推理，憑證不落地 (Remote Runtime & Credential Isolation)**
+   * AI 模型的登入態、ChatGPT 帳號憑證、Anthropic API Key 與對話歷史完整保留在你的遠端工作站或伺服器。
+   * Mac 本機無需儲存任何雲端 API Key，遠端主機離線或斷開時本機絕無憑證殘留風險。
+   * 本機僅透過 macOS Keychain 支援的加密機制儲存連線用的 SSH 憑證。
+
+2. **安全反向隧道 (Reverse Loopback Tunneling)**
+   * App 透過安全的 SSH 連線與遠端主機握手，並驗證主機公鑰指紋以防止中間人攻擊 (MITM)。
+   * 透過 SSH 反向連接埠轉發 (Reverse TCP Forwarding) 將遠端工具請求安全回傳至本機。
+   * 本機端點嚴格限制於 `127.0.0.1` 迴路，阻止任何來自外網或未授權局域網的非法存取。
+
+3. **零依賴全內建模組 (Self-Contained Native Subsystems)**
+   * **原生 Computer Use**：以 Swift 語言開發，直接透過 macOS Accessibility APIs (`AXUIElement`) 與 Quartz 顯示服務截取螢幕與模擬事件，並具有即時畫面覆蓋游標 (Overlay Cursor)，效能極致且不依賴外部 Python/Node 套件。
+   * **隔離式瀏覽器引擎**：內建 Playwright 專用 Chromium 與 FFmpeg，具備獨立 User Data Profile，不讀取、不污染使用者日常 Chrome/Safari 的 Cookies 與隱私資料。
+   * **路徑嚴格校驗**：本機工作目錄具備防路徑穿越 (Path Traversal) 與符號連結限制，防止危險的系統根目錄竄改。
+
+4. **系統級權限邊界 (Operating System Permission Boundary)**
+   * App 內的「最高權限」模式僅控制是否彈出重複確認對話框，無法繞過 macOS 系統層級的「輔助使用」與「螢幕錄製」隱私安全防護，嚴格遵循 Apple 系統安全模型。
 
 ## 快速開始 (Quick Start)
 

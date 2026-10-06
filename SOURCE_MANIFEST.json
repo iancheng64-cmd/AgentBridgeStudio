@@ -12,8 +12,12 @@
     "sha256": "d7fb10c47937bd098b6aee25d6390e636c4a3b38f8a0a5a768b486b51e5886f9"
   },
   "README.md": {
-    "bytes": 6508,
-    "sha256": "8f838c372d1c49a7607c1b247e30607714ccc83356481262fdb51a32533961e6"
+    "bytes": 9680,
+    "sha256": "43c5815d7f5be917a159339cc88f277274e5972cbbd8828fd362936e1783010c"
+  },
+  "README_EN.md": {
+    "bytes": 7696,
+    "sha256": "83b18f423e0a0dddfead9d6f15a4a51057abfd8e005ff5ff480ac182839d2d7c"
   },
   "THIRD_PARTY_NOTICES.md": {
     "bytes": 1662,
@@ -68,8 +72,8 @@
     "sha256": "dee2d844f6d0d188d0e8baaee0e968eb295adedb7d5a506ae2f67f71196573a5"
   },
   "scripts/package-public.py": {
-    "bytes": 3868,
-    "sha256": "b5f8fb47d2595107cce33c84e3055710002c4a5773d1e992efed5737afbf729d"
+    "bytes": 3884,
+    "sha256": "4097dce0205db414a6c83a1c1c3eb0c94bbeb7c20bc841ff45ddab7d131306e4"
   },
   "scripts/prepare-browser.cjs": {
     "bytes": 1531,
