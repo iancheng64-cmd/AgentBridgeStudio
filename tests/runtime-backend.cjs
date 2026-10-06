@@ -24,23 +24,40 @@ class Channel extends EventEmitter {
   stderr = new EventEmitter();
   requests = [];
   closed = false;
+  threads = new Map();
+  probeCount = 0;
   constructor(output) { super(); this.output = output; }
   end() { queueMicrotask(() => { this.emit('data', Buffer.from(this.output)); this.emit('close', this.exitCode || 0); }); }
   write(line) {
     const request = JSON.parse(line); this.requests.push(request);
     if (request.id === undefined || !request.method) return;
-    if (['thread/start','thread/resume'].includes(request.method)) this.threadConfig = request.params.config;
-    const macName = Object.keys(this.threadConfig?.mcp_servers || {}).find(name => name.startsWith('agentbridge_mac_'));
+    let thread;
+    if (['thread/start','thread/resume'].includes(request.method)) {
+      this.threadConfig = request.params.config;
+      const id = request.params.ephemeral ? `fixture-probe-${++this.probeCount}` : 'fixture-thread';
+      const environments = request.params.ephemeral && this.probeEnvironments !== undefined ? this.probeEnvironments
+        : request.method === 'thread/resume' && this.resumeEnvironments !== undefined ? this.resumeEnvironments
+        : request.params.environments || [{ environmentId: 'fixture-mac-environment' }];
+      thread = { id, environments };
+      this.threads.set(id, { config: this.threadConfig, environments });
+    }
+    const fixture = this.threads.get(request.params?.threadId);
+    const macName = Object.keys((fixture?.config || this.threadConfig)?.mcp_servers || {}).find(name => name.startsWith('agentbridge_mac_'));
+    const inventory = unexpectedMcp ? [{ name: 'unexpected_windows', tools: { dangerous: {} } }]
+      : request.params?.threadId?.startsWith('fixture-probe-') && this.probeMacFailure ? [{ name: macName, runtimeStatus: 'failed', tools: {}, toolsError: 'probe failed' }]
+      : macName ? [{ name: macName, runtimeStatus: fixture?.environments?.length === 0 ? 'disabled' : 'connected', tools: fixture?.environments?.length === 0 ? {} : { mac_fs_read: {} } }] : [];
     const result = request.method === 'initialize' ? { platformOs: 'windows' }
       : request.method === 'account/read' ? { account }
       : request.method === 'account/rateLimits/read' ? quotaResponse
       : request.method === 'model/list' ? { data: [{ id: request.params.cursor ? 'second' : 'first', model: 'fixture-model', supportedReasoningEfforts: [{ reasoningEffort: 'high', description: 'High' }] }], nextCursor: request.params.cursor ? null : 'page-2' }
       : request.method === 'config/read' ? { config: { mcp_servers: { original_windows: { command: 'forbidden', enabled: true } } } }
-      : ['thread/start','thread/resume'].includes(request.method) ? { thread: { id: 'fixture-thread' } }
-      : request.method === 'mcpServerStatus/list' ? { data: unexpectedMcp ? [{ name: 'unexpected_windows', tools: { dangerous: {} } }] : macName ? [{ name: macName, tools: { mac_fs_read: {} } }] : [] }
+      : ['thread/start','thread/resume'].includes(request.method) ? { thread, model: request.params.model || 'fixture-model' }
+      : request.method === 'mcpServerStatus/list' ? { data: inventory }
       : request.method === 'turn/start' ? { turn: { id: 'fixture-turn' } }
       : {};
-    const deliver=()=>this.emit('data',Buffer.from(JSON.stringify({id:request.id,...(request.method==='account/rateLimits/read'&&quotaError?{error:{code:-1,message:'quota failed'}}:{result})})+'\n'));
+    const rpcError = request.method === 'account/rateLimits/read' && quotaError ? 'quota failed'
+      : request.method === 'thread/unsubscribe' && this.unsubscribeError ? 'unsubscribe failed' : undefined;
+    const deliver=()=>this.emit('data',Buffer.from(JSON.stringify({id:request.id,...(rpcError?{error:{code:-1,message:rpcError}}:{result})})+'\n'));
     if(request.method==='account/rateLimits/read'&&deferQuota)pendingQuotas.push(deliver);else queueMicrotask(deliver);
   }
   close() { if (!this.closed) { this.closed = true; this.emit('close'); } }
@@ -159,6 +176,107 @@ test('unexpected Runtime MCP capability prevents model turn startup', async () =
   assert.equal(client.channel.requests.some(request => request.method === 'turn/start'), false);
   assert.ok(events.some(event => event.runtimeId === state.runtimeId && event.type === 'error' && /非 Mac 工具/.test(event.text)));
   await invoke('disconnect', state.runtimeId); executorEnabled = false; unexpectedMcp = false;
+});
+
+test('0.160 unloaded resume verifies a Mac-bound ephemeral thread before starting the original turn', async () => {
+  executorEnabled = true; runtimeVersion = '0.160.0';
+  const state = await invoke('connect', { ...input, permissionMode: 'full' });
+  const client = clients.at(-1); const channel = client.channel;
+  channel.resumeEnvironments = [];
+  try {
+    await invoke('send', { runtimeId: state.runtimeId, prompt: 'continue', conversationId: 'fixture-thread', model: 'fixture-model' });
+    await waitFor(() => channel.requests.some(r => r.method === 'turn/start'));
+    const requests = channel.requests;
+    const resume = requests.find(r => r.method === 'thread/resume');
+    const probe = requests.find(r => r.method === 'thread/start' && r.params.ephemeral);
+    const unsubscribe = requests.find(r => r.method === 'thread/unsubscribe');
+    const turn = requests.find(r => r.method === 'turn/start');
+    assert.equal(resume.params.environments, undefined);
+    assert.deepEqual(probe.params.config, resume.params.config);
+    assert.equal(probe.params.config.mcp_servers.original_windows.enabled, false);
+    const mac = Object.values(probe.params.config.mcp_servers).find(server => server.environment_id);
+    assert.equal(mac.environment_id, executors.at(-1).environmentId);
+    assert.equal(probe.params.model, 'fixture-model');
+    assert.equal(probe.params.approvalPolicy, 'never');
+    assert.equal(probe.params.sandbox, 'danger-full-access');
+    assert.deepEqual(probe.params.environments, [{ environmentId: executors.at(-1).environmentId, cwd: fs.realpathSync(root) }]);
+    assert.equal(unsubscribe.params.threadId, 'fixture-probe-1');
+    assert.ok(requests.indexOf(probe) < requests.indexOf(unsubscribe));
+    assert.ok(requests.some(r => r.method === 'mcpServerStatus/list' && r.params.threadId === unsubscribe.params.threadId));
+    assert.ok(requests.indexOf(unsubscribe) < requests.indexOf(turn));
+    assert.equal(turn.params.threadId, 'fixture-thread');
+    assert.deepEqual(turn.params.environments, probe.params.environments);
+    assert.equal(requests.filter(r => r.method === 'turn/start').length, 1);
+    assert.equal(client.ended, undefined);
+  } finally {
+    await invoke('disconnect', state.runtimeId); runtimeVersion = '0.159.2'; executorEnabled = false;
+  }
+});
+
+test('0.160 new and already bound threads start without an ephemeral probe', async () => {
+  executorEnabled = true; runtimeVersion = '0.160.0';
+  const state = await invoke('connect', input); const channel = clients.at(-1).channel;
+  try {
+    await invoke('send', { runtimeId: state.runtimeId, prompt: 'new' });
+    await waitFor(() => channel.requests.some(r => r.method === 'turn/start'));
+    channel.emit('data', Buffer.from(JSON.stringify({ method: 'turn/completed', params: { threadId: 'fixture-thread', turn: { id: 'fixture-turn', status: 'completed' } } }) + '\n'));
+    await invoke('send', { runtimeId: state.runtimeId, prompt: 'continue', conversationId: 'fixture-thread' });
+    await waitFor(() => channel.requests.filter(r => r.method === 'turn/start').length === 2);
+    assert.equal(channel.requests.some(r => r.method === 'thread/start' && r.params.ephemeral), false);
+  } finally {
+    await invoke('disconnect', state.runtimeId); runtimeVersion = '0.159.2'; executorEnabled = false;
+  }
+});
+
+test('0.160 foreign or unverifiable resumed environments stop the Runtime before any model turn', async () => {
+  executorEnabled = true; runtimeVersion = '0.160.0';
+  try {
+    for (const environments of [[{ environmentId: 'remote-windows' }], null]) {
+      const state = await invoke('connect', input); const client = clients.at(-1);
+      client.channel.resumeEnvironments = environments;
+      await invoke('send', { runtimeId: state.runtimeId, prompt: 'continue', conversationId: 'fixture-thread' });
+      await waitFor(() => client.ended);
+      assert.equal(client.channel.requests.some(r => r.method === 'turn/start'), false);
+      assert.equal(client.channel.requests.some(r => r.method === 'thread/start'), false);
+      assert.ok(events.some(event => event.runtimeId === state.runtimeId && event.type === 'error' && /執行環境/.test(event.text)));
+    }
+  } finally { runtimeVersion = '0.159.2'; executorEnabled = false; }
+});
+
+test('resume preflight failures unsubscribe the probe and prevent inference', async () => {
+  executorEnabled = true; runtimeVersion = '0.160.0';
+  try {
+    for (const failure of ['probeMacFailure', 'unsubscribeError', 'probeEnvironments']) {
+      const state = await invoke('connect', input); const client = clients.at(-1); const channel = client.channel;
+      channel.resumeEnvironments = [];
+      channel[failure] = failure === 'probeEnvironments' ? [{ environmentId: 'remote-windows' }] : true;
+      await invoke('send', { runtimeId: state.runtimeId, prompt: 'continue', conversationId: 'fixture-thread' });
+      await waitFor(() => client.ended);
+      assert.equal(channel.requests.some(r => r.method === 'turn/start'), false);
+      assert.equal(channel.requests.find(r => r.method === 'thread/unsubscribe').params.threadId, 'fixture-probe-1');
+    }
+  } finally { runtimeVersion = '0.159.2'; executorEnabled = false; }
+});
+
+test('background discussion resumes through the same Mac preflight and keeps its permission policy', async () => {
+  executorEnabled = true; runtimeVersion = '0.160.0';
+  const state = await invoke('connect', input); const channel = clients.at(-1).channel;
+  channel.resumeEnvironments = [];
+  try {
+    const resultPromise = backend.runCodexBackgroundTurn({ runtimeId: state.runtimeId, prompt: 'continue discussion', conversationId: 'fixture-thread' });
+    await waitFor(() => channel.requests.some(r => r.method === 'turn/start'));
+    const probe = channel.requests.find(r => r.method === 'thread/start' && r.params.ephemeral);
+    assert.equal(probe.params.approvalPolicy, 'untrusted');
+    assert.equal(probe.params.sandbox, 'read-only');
+    assert.ok(channel.requests.find(r => r.method === 'thread/unsubscribe'));
+    channel.emit('data', Buffer.from(JSON.stringify({ method: 'item/agentMessage/delta', params: { threadId: 'fixture-thread', itemId: 'fixture-message', delta: 'Discussion resumed.' } }) + '\n'));
+    channel.emit('data', Buffer.from(JSON.stringify({ method: 'turn/completed', params: { threadId: 'fixture-thread', turn: { id: 'fixture-turn', status: 'completed' } } }) + '\n'));
+    const result = await resultPromise;
+    assert.equal(result.status, 'completed'); assert.equal(result.text, 'Discussion resumed.');
+    assert.equal(result.conversationId, 'fixture-thread');
+  } finally {
+    await invoke('disconnect', state.runtimeId); runtimeVersion = '0.159.2'; executorEnabled = false;
+  }
 });
 
 test('matching verified 0.160.0 starts the Mac executor and unknown future versions remain unavailable', async () => {

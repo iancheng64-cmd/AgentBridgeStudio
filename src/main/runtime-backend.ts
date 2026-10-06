@@ -13,7 +13,7 @@ import { findHostInstallation, LocalCodeModeHost, parseCodexVersion } from "./lo
 import { LocalExecServer, type ExecutorRegistration } from "./local-exec-server";
 import { LoopbackForward } from "./loopback-forward";
 import { LocalToolHost, type LocalToolCall, type LocalToolCommand } from "./local-tool-host";
-import { isolatedRuntimeArgs, macThreadConfig, validateMacMcpInventory, isVerifiedExecutorVersion, VERIFIED_EXECUTOR_VERSIONS } from "./runtime-policy";
+import { isolatedRuntimeArgs, macThreadConfig, validateMacMcpInventory, needsMacEnvironmentPreflight, isVerifiedExecutorVersion, VERIFIED_EXECUTOR_VERSIONS } from "./runtime-policy";
 import { runtimeInput, type RuntimeAttachment } from "./runtime-attachments";
 import type { MacExtensionServer } from "./mac-extension-servers";
 import { localExtensionCatalog, writeExtensionManifest, macRuntimeInstructions, type RuntimeExtensionCatalog } from "./runtime-extensions";
@@ -129,13 +129,13 @@ async function refreshMacExtensions(runtime: Runtime, deps: Dependencies) {
   runtime.extensionCatalog = catalog;
   return { ...catalog, toolHost: runtime.toolHost?.status(), executionLocation: "local" as const, runtimeVersion: runtime.snapshot.runtimeVersion };
 }
-async function verifyThreadMcp(runtime: Runtime, threadId: string, expectedConfig?: Record<string, unknown>) {
+async function verifyThreadMcp(runtime: Runtime, threadId: string, expectedConfig?: Record<string, unknown>, options?: { allowInactiveMac?: boolean }) {
   const inventory: any[] = []; let cursor: string | undefined;
   for (let page = 0; page < 100; page++) {
     const result = await runtime.rpc.request("mcpServerStatus/list", { threadId, limit: 100, ...(cursor ? { cursor } : {}) });
     if (!Array.isArray(result.data)) throw new Error("Runtime 未提供有效的 MCP 工具清單。");
     inventory.push(...result.data); if (!result.nextCursor) {
-      try { validateMacMcpInventory(inventory, runtime.mcp?.name); }
+      try { validateMacMcpInventory(inventory, runtime.mcp?.name, options); }
       catch (error) {
         // Only capability metadata, never endpoints, headers, auth or tool arguments.
         fs.writeFileSync(path.join(app.getPath("userData"),"runtime-isolation-diagnostic.json"),JSON.stringify({
@@ -149,6 +149,30 @@ async function verifyThreadMcp(runtime: Runtime, threadId: string, expectedConfi
     if (result.nextCursor === cursor) break; cursor = result.nextCursor;
   }
   throw new Error("Runtime MCP 工具清單無法完整驗證。");
+}
+
+async function verifyTurnMacTools(runtime: Runtime, response: any, config: Record<string, unknown>, permissionPolicy: Record<string, unknown>) {
+  // thread/resume cannot select environments in 0.160. A fresh resume has
+  // environments: []; turn/start is the supported operation that binds it.
+  // Prove the current Mac route before inference without changing history,
+  // dropping environment_id, or enabling the Runtime host's tools.
+  const inactive = runtime.snapshot.runtimeVersion === "0.160.0"
+    ? needsMacEnvironmentPreflight(response.thread, runtime.executor!.environmentId)
+    : false;
+  await verifyThreadMcp(runtime, response.thread.id, config, { allowInactiveMac: inactive });
+  if (!inactive) return;
+  let probeId: string | undefined;
+  try {
+    const probe = await runtime.rpc.request("thread/start", {
+      ephemeral: true, model: response.model || undefined, config, ...permissionPolicy,
+      environments: [{ environmentId: runtime.executor!.environmentId, cwd: runtime.localCwd }]
+    });
+    probeId = probe.thread.id;
+    if (needsMacEnvironmentPreflight(probe.thread, runtime.executor!.environmentId)) throw new Error("Mac 工具驗證對話未綁定目前的執行環境。");
+    await verifyThreadMcp(runtime, probeId!, config);
+  } finally {
+    if (probeId && !runtime.closed) await runtime.rpc.request("thread/unsubscribe", { threadId: probeId });
+  }
 }
 
 function routeNotification(runtime: Runtime, deps: Dependencies, message: any) {
@@ -308,7 +332,7 @@ export async function runCodexBackgroundTurn(input: {
     const threadId = thread?.thread?.id;
     if (typeof threadId !== "string" || !threadId) throw new Error("Codex Runtime 未回傳有效的討論 Thread ID。");
     run.threadId = threadId;
-    await verifyThreadMcp(runtime, threadId);
+    await verifyTurnMacTools(runtime, thread, config, { approvalPolicy: "untrusted", sandbox: "read-only" });
     if (runtime.closed || runtime.run !== run) throw new Error("Codex 討論回合已中斷。");
     const result = await runtime.rpc.request("turn/start", {
       threadId: run.threadId,
@@ -508,7 +532,7 @@ export function registerRuntimeBackend(deps: Dependencies) {
         run.usageBaseline=usageByThread.get(runtime.id+":"+run.threadId);
         run.usageComplete=!!run.usageBaseline||!input.conversationId;
         if(!run.usageBaseline&&!input.conversationId)run.usageBaseline={totalTokens:0,inputTokens:0,cachedInputTokens:0,outputTokens:0};
-        try { await verifyThreadMcp(runtime, run.threadId!,config); }
+        try { await verifyTurnMacTools(runtime, thread, config, codexPermissionPolicy(runtime.permissionMode)); }
         catch (error) {
           const reason = error instanceof Error ? error.message : String(error);
           emitForRun(runtime, deps, { type: "error", text: reason }); closeRuntime(runtime, deps, reason); return;
