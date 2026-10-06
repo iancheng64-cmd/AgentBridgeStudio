@@ -1,0 +1,155 @@
+{
+  "name": "agentbridge-studio",
+  "version": "0.4.7",
+  "description": "A self-contained macOS desktop client for remote Codex and Claude runtimes, with bundled local computer and browser tools.",
+  "author": "AgentBridge Studio",
+  "license": "MIT",
+  "main": "dist-main/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && AGENTBRIDGE_DEV_URL=http://127.0.0.1:5173 electron .\"",
+    "build:computer-use": "cd vendor/open-codex-computer-use && swift build -c release",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && tsc -p tsconfig.main.json",
+    "dist": "npm run build:computer-use && npm run prepare:browser && npm run build && npm run prepare:notices && node scripts/release.cjs",
+    "test": "node --test tests/*.cjs",
+    "test:handoff": "python3 -m unittest discover -s tests -p 'test_package_handoff*.py'",
+    "package:handoff": "python3 scripts/package-handoff.py",
+    "prepare:browser": "node scripts/prepare-browser.cjs",
+    "prepare:notices": "node scripts/prepare-notices.cjs",
+    "package:public": "python3 scripts/package-public.py"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.0",
+    "@playwright/mcp": "0.0.82",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "framer-motion": "13.4.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "smol-toml": "1.9.0",
+    "ssh2": "1.17.0",
+    "supergateway": "4.0.0"
+  },
+  "devDependencies": {
+    "@openai/codex": "0.160.0",
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.4",
+    "@types/react-dom": "19.2.2",
+    "@types/ssh2": "1.15.5",
+    "@vitejs/plugin-react": "6.1.1",
+    "concurrently": "9.2.4",
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3",
+    "typescript": "7.0.2",
+    "vite": "8.3.1",
+    "wait-on": "9.0.1",
+    "ws": "8.22.0",
+    "@electron/notarize": "2.5.0"
+  },
+  "build": {
+    "appId": "com.agentbridge.studio",
+    "productName": "AgentBridge Studio",
+    "asar": true,
+    "electronDist": "node_modules/electron/dist",
+    "files": [
+      "dist-main/**/*",
+      "dist-renderer/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "extraResources": [
+      {
+        "from": "vendor/open-codex-computer-use/.build/release/claudex-computer-use",
+        "to": "computer-use/claudex-computer-use"
+      },
+      {
+        "from": "vendor/open-codex-computer-use/.build/release/claudex-computer-use-cli",
+        "to": "computer-use/claudex-computer-use-cli"
+      },
+      {
+        "from": "vendor/open-codex-computer-use/.build/release/claudex-computer-use-overlay-helper",
+        "to": "computer-use/claudex-computer-use-overlay-helper"
+      },
+      {
+        "from": "vendor/open-codex-computer-use/LICENSE",
+        "to": "computer-use/LICENSE"
+      },
+      {
+        "from": "node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin",
+        "to": "codex"
+      },
+      {
+        "from": "vendor/codex/LICENSE",
+        "to": "codex/LICENSE"
+      },
+      {
+        "from": "build/runtime-browsers",
+        "to": "browser",
+        "filter": [
+          "**/*",
+          "!.links/**/*"
+        ]
+      },
+      {
+        "from": "build/third-party-notices",
+        "to": "third-party-notices"
+      },
+      {
+        "from": "docs/INSTALLATION.md",
+        "to": "INSTALLATION.md"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "AgentBridge-Studio-${version}-${arch}.${ext}",
+      "minimumSystemVersion": "13.0",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "AgentBridge uses the local tools you allow to interact with applications on this Mac.",
+        "NSMicrophoneUsageDescription": "Microphone features are not enabled in this release."
+      }
+    },
+    "dmg": {
+      "title": "AgentBridge Studio",
+      "iconSize": 96,
+      "window": {
+        "width": 560,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 155,
+          "y": 190
+        },
+        {
+          "x": 405,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 280,
+          "y": 285,
+          "type": "file",
+          "path": "docs/INSTALLATION.md"
+        }
+      ]
+    },
+    "afterPack": "scripts/after-pack.cjs",
+    "afterSign": "scripts/after-sign.cjs"
+  },
+  "allowScripts": {
+    "electron@44.4.5": true,
+    "ssh2@1.17.0": true,
+    "cpu-features@0.0.10": true
+  }
+}

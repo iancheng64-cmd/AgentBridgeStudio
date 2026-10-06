@@ -1,0 +1,582 @@
+{
+  ".github/workflows/release.yml": {
+    "bytes": 3600,
+    "sha256": "fe63761b1e41f369d73b3db4dccd1f57787512061d2f30c5b06be5ea56ec1abb"
+  },
+  ".gitignore": {
+    "bytes": 401,
+    "sha256": "6d1081bc6ea5f22f53d5453d78e3375398bbc20015f6d9c403d4be7dc1e7e124"
+  },
+  "LICENSE": {
+    "bytes": 1088,
+    "sha256": "d7fb10c47937bd098b6aee25d6390e636c4a3b38f8a0a5a768b486b51e5886f9"
+  },
+  "README.md": {
+    "bytes": 5766,
+    "sha256": "0fcfd22ac65b89d3162556035cfaf2f79532538e212099e15ea51ce1da5ee33f"
+  },
+  "THIRD_PARTY_NOTICES.md": {
+    "bytes": 1662,
+    "sha256": "e3a99b921aa21b32bc886181b9c0e4a5a59dd50245c9b9c7b39373345eda7f70"
+  },
+  "build/icon.icns": {
+    "bytes": 1045480,
+    "sha256": "031bc366eb3a825b7cb5a739a2d1bcfba7bad3770bf2b16cbfa5319e1e93a6f5"
+  },
+  "docs/ARCHITECTURE.md": {
+    "bytes": 1652,
+    "sha256": "2e3a8328d0759c61b095f32aec08fafe472e05c88c5a1f7a71fb931657df6a4d"
+  },
+  "docs/INSTALLATION.md": {
+    "bytes": 3241,
+    "sha256": "e7b156336f91e6ed057c937e41a67f43e246c065d83e58049c38d133951773e9"
+  },
+  "docs/RELEASE_ACCEPTANCE.md": {
+    "bytes": 2836,
+    "sha256": "ab006364dd59e4ee41d0e18d6599f2554f04010a426fa9e35f1d52cb4acbdb76"
+  },
+  "docs/RELEASE_NOTES.md": {
+    "bytes": 942,
+    "sha256": "89fe92c2f4da6a58c82f3138a9fe969bc8482124957e9fd8663a7b0a4ad2d869"
+  },
+  "docs/RELEASING.md": {
+    "bytes": 3703,
+    "sha256": "a7266dedf52e88865df94062cc1cdb1d7c8e33f632e6ea22a0a384ea5769f6ff"
+  },
+  "package-lock.json": {
+    "bytes": 250114,
+    "sha256": "d3fc71eca4165c498115b4fc84b893a822fd082d14bbd9a24efce7d990a31840"
+  },
+  "package.json": {
+    "bytes": 4708,
+    "sha256": "952baa071b3170435fbe286f801c94691d0fbe5359b2a29eb3eb1adffb37089d"
+  },
+  "scripts/after-pack.cjs": {
+    "bytes": 734,
+    "sha256": "43699b4bc57bc08f543e6cf74880dec177305cb45e027a333e3be63570dc679c"
+  },
+  "scripts/after-sign.cjs": {
+    "bytes": 812,
+    "sha256": "c378df7e78624760f296a6dc8fe04e39953582ddffa1889921b5ed36f5e42eb0"
+  },
+  "scripts/check-installed.cjs": {
+    "bytes": 4254,
+    "sha256": "cee4428b5e6c4f145849a163a721c9e61ec9f3f42c406575f5e31cc8203c5f94"
+  },
+  "scripts/package-handoff.py": {
+    "bytes": 4376,
+    "sha256": "dee2d844f6d0d188d0e8baaee0e968eb295adedb7d5a506ae2f67f71196573a5"
+  },
+  "scripts/package-public.py": {
+    "bytes": 3856,
+    "sha256": "e4943b52c31aedc68b6042542ad5a68c234dffd0cd0befe0119643a60b9e8c1b"
+  },
+  "scripts/prepare-browser.cjs": {
+    "bytes": 1531,
+    "sha256": "e769a6ee714892c56d8a6f013fdb50ae958b4cca54aa1795cf3e96da53e7dea9"
+  },
+  "scripts/prepare-notices.cjs": {
+    "bytes": 1924,
+    "sha256": "1050ee416f4702583efbc32d4e5bfb8a7c2fc713083322e0d8411d6b24cde32a"
+  },
+  "scripts/probe-split-runtime.cjs": {
+    "bytes": 19030,
+    "sha256": "03067bc74909c0ab4482d5929b2ba4c8632eaf1f496f2ad016df7180c76447f7"
+  },
+  "scripts/probe-ssh-transport.cjs": {
+    "bytes": 2681,
+    "sha256": "53786a54f1094560d1dbd547de1fc4a659d2334300c18d5eb43e2e46637abe21"
+  },
+  "scripts/release.cjs": {
+    "bytes": 2841,
+    "sha256": "90bc9af30d4ac32d129907e42c02301c7e4f0b79d0852c5bc048f4d9c507568f"
+  },
+  "scripts/runtime-preflight.ps1": {
+    "bytes": 5033,
+    "sha256": "f6ade2b6158f6e281387501233dc802bc47d5f57ed5d734351131a8743e62755"
+  },
+  "scripts/setup-windows-runtime.ps1": {
+    "bytes": 1562,
+    "sha256": "ac3aac0ca0eadf63c5f86ddb44746427f96580dc8ce144320e85d458a527f332"
+  },
+  "scripts/sign-mac-app.py": {
+    "bytes": 1446,
+    "sha256": "91a8d1d6dde65109821f492f0c872e9948932faf0cd08cceb72cb8b071623a56"
+  },
+  "src/main/agent-orchestrator.ts": {
+    "bytes": 10170,
+    "sha256": "6ad56b94981758f6a4b2df0bc800b49669ed773872878a223a96a2a233cd8ee4"
+  },
+  "src/main/agent-relay.ts": {
+    "bytes": 8634,
+    "sha256": "8580cd95b4d67669d73c484f50788289acaae56c8b2925b7a75d311f28bafe3d"
+  },
+  "src/main/app-server-rpc.ts": {
+    "bytes": 7582,
+    "sha256": "82327f1b9f366afb65af3c78e33a072e1f696ba0948293d5f7f5d128c27e327c"
+  },
+  "src/main/browser-runtime.ts": {
+    "bytes": 1123,
+    "sha256": "4f65ba771e21432831ab73b02a4822e70737483f8f1a931c4877bbd8b99e0444"
+  },
+  "src/main/chat-protocol.ts": {
+    "bytes": 6149,
+    "sha256": "3f6a4a6b20bcc131ba157600550456a2f1850ff399061c5540e54c1fd48295ac"
+  },
+  "src/main/claude-auth-mode.ts": {
+    "bytes": 5381,
+    "sha256": "63a91016ed6004e573f1a19d5de2f080a639060a40c557e6f8e5bbf6a92672b9"
+  },
+  "src/main/claude-local-backend.ts": {
+    "bytes": 17377,
+    "sha256": "2c3aeacc82c28a3c1ae5806f76f0544e72e91630f92bbfbcba51db6d54789146"
+  },
+  "src/main/claude-local-protocol.ts": {
+    "bytes": 3822,
+    "sha256": "0d4a33013617e7fcbb9b8a7a9687e20fa0d04ab5e1d0de9c211497f832818357"
+  },
+  "src/main/claude-local-runtime.ts": {
+    "bytes": 23089,
+    "sha256": "5224c983518b90e1cc0f1d9c7dd54759211addbcbde2b5afbb1953f71766a515"
+  },
+  "src/main/claude-remote-bootstrap.ts": {
+    "bytes": 7918,
+    "sha256": "ffed51a23ebb3c54c6b1e8334c65bc09116d540368073f25e07aec92c696a8bd"
+  },
+  "src/main/claude-remote-launch.ts": {
+    "bytes": 4690,
+    "sha256": "44ea4d04ef27804fe60faf65236bb392890752f3cca760050dce414fbb3dd3cf"
+  },
+  "src/main/computer-provider.ts": {
+    "bytes": 2130,
+    "sha256": "ca93b3a470e62f48de3ff627a5ba1b695dd486888fbdf3422a4147999c9c6cf7"
+  },
+  "src/main/connection-selection.ts": {
+    "bytes": 618,
+    "sha256": "26ec5527554fe3b03849ca32347b23a1b5712244e5a3c46be46864774c49da7c"
+  },
+  "src/main/desktop-backend.ts": {
+    "bytes": 14906,
+    "sha256": "b51c15e02814f528626df458c07006d7c7c2b6e5e1a49de57dbd25a1562f439c"
+  },
+  "src/main/exposure.ts": {
+    "bytes": 5982,
+    "sha256": "7607ca6fa4fb48515fb945a0e79205374d48d3b14940c9299f4cb89f162dcd43"
+  },
+  "src/main/extensions.ts": {
+    "bytes": 6309,
+    "sha256": "0068aab019c127d7c832e411f10374a6288c6e9dcf35d6904d5303d6cfd3ea6e"
+  },
+  "src/main/gateway-loopback.ts": {
+    "bytes": 751,
+    "sha256": "904d0f06d550007c9bd97acec482eb2b18f7142153a283a664d229a1ffbc8620"
+  },
+  "src/main/host-platform.ts": {
+    "bytes": 817,
+    "sha256": "1df56f5e95575e594a97731036ed437d655c5a6b2a798397e6114494fbb2cef0"
+  },
+  "src/main/http-tool-health.ts": {
+    "bytes": 2772,
+    "sha256": "5171fa38ee2fe04fa8f9acc8ec6a3cf398dda42f462f3ccf1dfc38b8a8707fbe"
+  },
+  "src/main/local-code-mode-host.ts": {
+    "bytes": 6891,
+    "sha256": "94486ed9127988077514d163dbb07c6f18d7c77282c557cc7e51e08773118755"
+  },
+  "src/main/local-exec-server.ts": {
+    "bytes": 5185,
+    "sha256": "8eddcefd375fea6d34e8d9eb4925fc863bb643c0cb6c02d3c3c3a15849435c3b"
+  },
+  "src/main/local-tool-host.ts": {
+    "bytes": 30468,
+    "sha256": "c479800d45673ee1a49ff479e4f42bef711fd6049df3fb4d4d02ec3ff3c86dd8"
+  },
+  "src/main/local-tool-stdio.ts": {
+    "bytes": 5445,
+    "sha256": "d16b10d51fadef0e0603a5d6e759015e2753bc4c210e05aff79b44fa1c4b6e11"
+  },
+  "src/main/loopback-forward.ts": {
+    "bytes": 2579,
+    "sha256": "759e6d94c2a5d8001d398faba0a687c7faf54bc34a30fc8663fc88ef78995874"
+  },
+  "src/main/mac-extension-servers.ts": {
+    "bytes": 7638,
+    "sha256": "b3df3131f7f7ceed660b511ece7bb8528ee49b824265d0079f3c3ebc688e2d81"
+  },
+  "src/main/mac-mcp-auth.ts": {
+    "bytes": 5805,
+    "sha256": "869d9b7ea58b5052278da885c88fc61207c672dc51536421d6820648c05abebc"
+  },
+  "src/main/main.ts": {
+    "bytes": 58848,
+    "sha256": "a67769935e88eb5100556c93156537a2b626aed559bfaf56330fdff34a3e1fa1"
+  },
+  "src/main/native-diagnostics.ts": {
+    "bytes": 4176,
+    "sha256": "9f1511848be673376de1d11917dc19cb281c7e3581b92edde1672bebf003164f"
+  },
+  "src/main/permission-policy.ts": {
+    "bytes": 425,
+    "sha256": "04df53291d4a50d7676c802d6cbe9e84c911863af91a5175f200b7cc5fc4ef1d"
+  },
+  "src/main/preload.ts": {
+    "bytes": 10162,
+    "sha256": "81b995bb5e0e50dec7c0383e58206ea75c7e72534da476cdee784d19d630332d"
+  },
+  "src/main/profile-credentials.ts": {
+    "bytes": 2016,
+    "sha256": "65b68108648cc7225d5d3dceb459d374cb2a5e47c4fde7c5f398aa71fdb7f45a"
+  },
+  "src/main/quota-state.ts": {
+    "bytes": 1587,
+    "sha256": "b2752d4580a9ffee300ccd037e93afd857ba6ce3578fdcd6aeae9d98294c811f"
+  },
+  "src/main/remote-shell.ts": {
+    "bytes": 2993,
+    "sha256": "76a08bad08c564fedac2008d67be51ab925d9a60614a5081a0960d5e72ec7771"
+  },
+  "src/main/runtime-attachments.ts": {
+    "bytes": 1526,
+    "sha256": "75681e990066c030a98798d66af47eda13ed92d67a14c67d2888bc566a4f488b"
+  },
+  "src/main/runtime-backend.ts": {
+    "bytes": 46900,
+    "sha256": "b3f3cbd45b1f961547a7107619d00a15f2b7d168a8ba76305b968827cce41df6"
+  },
+  "src/main/runtime-extensions.ts": {
+    "bytes": 5205,
+    "sha256": "f70ca96f185e9f3316a567ce51cad96f93f8eced75422f99063a83fcc5a04efa"
+  },
+  "src/main/runtime-policy.ts": {
+    "bytes": 3592,
+    "sha256": "cb4f41f269eca3890e4272c1f8df7472cf2c3c69dccdf276588d9c3dd7776dba"
+  },
+  "src/main/runtime-usage.ts": {
+    "bytes": 5879,
+    "sha256": "aa5dfa83d27d966d15b319d817167a6e94be0ea4216dbcc6adcaaabd5e8118f6"
+  },
+  "src/renderer/App.tsx": {
+    "bytes": 102924,
+    "sha256": "93ae18b643de173b94e35466cb3b010315192f8226e5cf44fea3c9c58ab56457"
+  },
+  "src/renderer/AttachmentPreview.tsx": {
+    "bytes": 858,
+    "sha256": "33915a01c97de4ab378bac193c0d5a7a3bc583ca506609bfdc8f41098f65fc80"
+  },
+  "src/renderer/ClaudeSettings.tsx": {
+    "bytes": 5404,
+    "sha256": "7e0fff1f88fe1f29f6d98bebb6ac0c730135c3da017b690155ccc13e93ab62c8"
+  },
+  "src/renderer/LegacyViews.tsx": {
+    "bytes": 41854,
+    "sha256": "d099d09b49882115e4712f116751dbd477a63a81ef0bfb3f1930c51ce53b12cb"
+  },
+  "src/renderer/MacToolsPanel.tsx": {
+    "bytes": 7329,
+    "sha256": "84f748fe2811dbaea5d2a7319bb4b6fa31df9d269ad95bc3043eeef722554304"
+  },
+  "src/renderer/QuotaPopover.tsx": {
+    "bytes": 5048,
+    "sha256": "3feb4aa1347829b8e009790fb289cfd4345967e041ab0802d50ed345a2b62e0e"
+  },
+  "src/renderer/RuntimeControls.tsx": {
+    "bytes": 8119,
+    "sha256": "c50e652640e5acc2a68b86aeeb476c84cfb998bc8ea7b79ca88b6c30527a88df"
+  },
+  "src/renderer/SidebarDrag.tsx": {
+    "bytes": 6134,
+    "sha256": "cabd71ba8a2925c62fc98539ecd15e82e418d82a5ff56f33e897be89dc8ecddf"
+  },
+  "src/renderer/StudioUI.tsx": {
+    "bytes": 9055,
+    "sha256": "0e94d803452bc93d8452347b229bbe0d6c518cd8346f32aafe0d56bc85f7b242"
+  },
+  "src/renderer/UsagePage.tsx": {
+    "bytes": 10276,
+    "sha256": "794825860ec8c46840a077aabb2db845b4e8587431a6408b392ce2fca2f6f855"
+  },
+  "src/renderer/global.d.ts": {
+    "bytes": 7608,
+    "sha256": "c1491d09486a66ea8cbe6934329eeb59fc218c349f7eb9651e2ccf05dd6fdc8e"
+  },
+  "src/renderer/index.html": {
+    "bytes": 360,
+    "sha256": "6d753e35446839317764b1dae4c541ad8f997a96d9f01f0a828e2322fc7446d1"
+  },
+  "src/renderer/main.tsx": {
+    "bytes": 413,
+    "sha256": "c46f9d65e5a20aede31e1d093ee3ebb60af57c4775a4feb4a80b6ec5b444a0e5"
+  },
+  "src/renderer/motion.ts": {
+    "bytes": 4401,
+    "sha256": "f3cb303be6678152e84e738e5b2580b31a7a9ae2ee6d22d140575ab18e9224d5"
+  },
+  "src/renderer/styles.css": {
+    "bytes": 62765,
+    "sha256": "f0f3383a9fd9dbc107243d6b0442f79e5e1130053a97db6d214dc1185fda4c44"
+  },
+  "src/renderer/tokens.css": {
+    "bytes": 27612,
+    "sha256": "efdfd26e9e294898b94f68b1b68ffe628e9ad4732f4c5c443947b917aab47417"
+  },
+  "src/renderer/useCodexQuota.ts": {
+    "bytes": 1380,
+    "sha256": "861d77918204734b533ffdf0a12372ae5fd35ed4f985ededdcd6348ef4acf1c5"
+  },
+  "src/renderer/vite-env.d.ts": {
+    "bytes": 38,
+    "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+  },
+  "tests/agent-orchestrator.cjs": {
+    "bytes": 5774,
+    "sha256": "aa7306388ac00c9bccc87a844272359d7e4afd42c1edd19d75f8711166f6e446"
+  },
+  "tests/browser-http-hosts.cjs": {
+    "bytes": 2486,
+    "sha256": "ece2b7f3f0a7c8c534e68477646673db8941662bf74d3a96f466276c3ae876f3"
+  },
+  "tests/browser-runtime.cjs": {
+    "bytes": 2924,
+    "sha256": "6d367b518886a2c714fb8fbcc49ff5d29277cb4886d27b7eeac09e179dbc07ee"
+  },
+  "tests/chat-cancel.cjs": {
+    "bytes": 3200,
+    "sha256": "3fd0d9148c374e9f570be814bb2f0eca2204c4d84ed132707b18cbbe333518f2"
+  },
+  "tests/chat-protocol.test.cjs": {
+    "bytes": 5490,
+    "sha256": "1a45097a9a251e5b65b02e28b3d0fe6f43269a5b654d8a19a3b8cb622becb09c"
+  },
+  "tests/claude-auth.cjs": {
+    "bytes": 3462,
+    "sha256": "5f925abd8aa2739efade6404c78a3c2a126defd71cb4bda9f37dfc7ff7a9760c"
+  },
+  "tests/claude-protocol.cjs": {
+    "bytes": 1650,
+    "sha256": "92e759c1bb5f8ac8cc477e8514ae5315474985a33db0e4d501d795440ba7cc17"
+  },
+  "tests/claude-remote.cjs": {
+    "bytes": 10403,
+    "sha256": "051e42c7e34634d8e5dee58e0d44b787b86dabc567263794733b2ae9b28ae0a4"
+  },
+  "tests/claude-runtime.cjs": {
+    "bytes": 6356,
+    "sha256": "156e4a1f3e521b17db429d14be2570c4b5ef60345b34895e43778d13730fe8e0"
+  },
+  "tests/computer-provider.cjs": {
+    "bytes": 8484,
+    "sha256": "e5ff7a068c3e803734ba31a3af2fa433ab0ca028774fa39c864f8a696027cc5f"
+  },
+  "tests/connection-selection.cjs": {
+    "bytes": 1164,
+    "sha256": "5cdfd1803f9c737827824b70df28eb656080e91ec345fa205e6ca3f5724c7a64"
+  },
+  "tests/desktop-backend.cjs": {
+    "bytes": 4580,
+    "sha256": "5048fc33abfbb8f7b55393cb495ef0f7321d84ef776660fee814e178da27e264"
+  },
+  "tests/exposure.cjs": {
+    "bytes": 4555,
+    "sha256": "f60a1b54f34287bbad47486a0ff64bed75ee1a4bf5d9939d332fa27e961cd2ef"
+  },
+  "tests/extensions.cjs": {
+    "bytes": 2516,
+    "sha256": "cb32193c53a9628df8ffe7ab8b5bc218ddc0c75804200f9bfbb2d87524f7099c"
+  },
+  "tests/library-attachments.cjs": {
+    "bytes": 3171,
+    "sha256": "6b9f87356fc7c160775715e068a01f454fceb053cf518eff31ae8a434726afe7"
+  },
+  "tests/local-exec-server.cjs": {
+    "bytes": 3972,
+    "sha256": "b33bf04388f7012c2511c941eae0dd6d0b580c4ade5660e145547879b0a156c7"
+  },
+  "tests/local-tool-host-native.cjs": {
+    "bytes": 4692,
+    "sha256": "48678cdd64a81e1e6392035a92b758ac550e38e3b35d012d4dd9ff0d6a2a399d"
+  },
+  "tests/local-tool-host.cjs": {
+    "bytes": 13432,
+    "sha256": "a056c74c9e6fb76c221ef2c4d5151af4262d7f2ec9915d9a141124ced3033c5b"
+  },
+  "tests/mac-extension-servers.cjs": {
+    "bytes": 5230,
+    "sha256": "02b27b7c6783a4e3a32a5a93e817457fbff985b90539e9172416134634a2ffeb"
+  },
+  "tests/mac-mcp-auth.cjs": {
+    "bytes": 8140,
+    "sha256": "e83ac39771c39fc66afbbb98f2c8766f086063bba6a1baf23c1c137828b58c6a"
+  },
+  "tests/mac-shell.cjs": {
+    "bytes": 8072,
+    "sha256": "2c0e03eaac7d88db941b1e3c4031c74476e75a5c0ba78ae6c29f017eaa06f82a"
+  },
+  "tests/native-diagnostics.cjs": {
+    "bytes": 4005,
+    "sha256": "9b1feede1389a99f92307d3c403c312f73063bbda413f65d46bc66816bf0e718"
+  },
+  "tests/profile-credentials.cjs": {
+    "bytes": 2782,
+    "sha256": "dcf3415865fc78fbe2bee31542817275dfe14f376bc7b85c096ef402418dbe7e"
+  },
+  "tests/quota-state.cjs": {
+    "bytes": 1764,
+    "sha256": "2b9352f4a015ce46933a93690a4331a5ca6921cf671ac1f0d99565977faed10c"
+  },
+  "tests/remote-shell.cjs": {
+    "bytes": 3269,
+    "sha256": "85cb0d60d6e462a1b4990e859551e665d3c33641d45197f84a581d679ee65c9a"
+  },
+  "tests/runtime-backend.cjs": {
+    "bytes": 19659,
+    "sha256": "294c3db73e90cffd47cd0e0c7790f0445e44114133f2b79e0bc7bf6a6dfd92ef"
+  },
+  "tests/runtime-policy.cjs": {
+    "bytes": 4307,
+    "sha256": "3255c315c89218da0a7a739b9a5d9bde0dd322d77547908f84f52f97f461d2d1"
+  },
+  "tests/runtime-rpc.cjs": {
+    "bytes": 4383,
+    "sha256": "cd9f4dd8566b880f14b2a140134bef4b826d039fb29be4eec05849f532939704"
+  },
+  "tests/split-ssh.cjs": {
+    "bytes": 10355,
+    "sha256": "7276e8ea700516a269fbc6cf8cc1b50a352d1ddd3b47df1ea298c94c44773bef"
+  },
+  "tests/test_package_handoff_acceptance.py": {
+    "bytes": 11257,
+    "sha256": "74071a6b95da906d0ba81e4bbbd49b268e3e417fee57d9f72c94882beacc4fea"
+  },
+  "tests/test_package_public.py": {
+    "bytes": 1998,
+    "sha256": "1b815e4091449ef4b2479a1acbbb3ed2eebf4a61afff099b1ae8bdfd580c6b55"
+  },
+  "tests/usage.cjs": {
+    "bytes": 4291,
+    "sha256": "8056737ad562e81fe3d962a2a2e6233aff48a25704ab39ac97bb87396942b6ce"
+  },
+  "tsconfig.json": {
+    "bytes": 516,
+    "sha256": "780903daf7f3686a2fb710e315099d82e2132bb7e11e4aa76b7cce0d27f48d29"
+  },
+  "tsconfig.main.json": {
+    "bytes": 345,
+    "sha256": "3e7d718f4d00151759f8b93591f9584f19d0b5cfa8a4f88700a25e08b2b70817"
+  },
+  "vendor/codex/LICENSE": {
+    "bytes": 10926,
+    "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc"
+  },
+  "vendor/open-codex-computer-use/LICENSE": {
+    "bytes": 1068,
+    "sha256": "4a0b5952777f8076ff1c729b4445ae76df4012c430471b59596a78aca9caa72f"
+  },
+  "vendor/open-codex-computer-use/Package.swift": {
+    "bytes": 1527,
+    "sha256": "931ed0146b91e1c2bb8aeee5b3a2b26b48d455d4e8048565932f548be3f57742"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCLI/main.swift": {
+    "bytes": 23082,
+    "sha256": "2a7b7df38b8d3e76c9baa0dbbbcc1bacd088a36616cfc465dcbf0158c6f5f364"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/Allowlist.swift": {
+    "bytes": 4147,
+    "sha256": "560513af3ede697c1b66953408c25878c01cdcabe93be1ba8bc01faa04ca752f"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/AppBootstrap.swift": {
+    "bytes": 749,
+    "sha256": "c142a738a0b56abcce8a06493316bd193af3fe5eba81a52b8563f5f3235c5671"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/AppDiscovery.swift": {
+    "bytes": 2439,
+    "sha256": "b61fff346bd6b34df73aad9db6c5e6161f400e1dda913e2627c871b4e893f51b"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/AppGuidance.swift": {
+    "bytes": 8330,
+    "sha256": "b9c7a2cdc72f5a4da59e7503bc4f781c00cd4fa607f5047a6012359f4baa52af"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/AppResolver.swift": {
+    "bytes": 5545,
+    "sha256": "c441ed571ffcb8ef331e45619482f07c61ed101416d402357da78c607dad306e"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/AppState.swift": {
+    "bytes": 19205,
+    "sha256": "1bcc8b0c7ea7f3c8e2d61cd563aa6cb2bf81e05ec435c00c679ceef8d40a775a"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/CodexCompat.swift": {
+    "bytes": 10021,
+    "sha256": "d7a5f7309508bb13ed3a42f1b3d06712dcf95608cf39a2ea2b88ef2d4ddea2f3"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/DesktopSession.swift": {
+    "bytes": 12301,
+    "sha256": "888881c91ae2d341c0fe21900bfaf12f6f78a5e6ce1b6119854a613bcbefc22c"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/Diagnostics.swift": {
+    "bytes": 2258,
+    "sha256": "1c834d504f9efc0f9d55daece69bfb9e8cffcaa22ee40b47ffa3e91e6f07e72e"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/InputInjection.swift": {
+    "bytes": 29367,
+    "sha256": "e94e37e6232961e1c7ba31312574bea28359076dc1ddb9125bd77d445f6862b4"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/InteractionDelivery.swift": {
+    "bytes": 2160,
+    "sha256": "d6263aa16f35fad3777a0ca964ac49c3689b2ce6cea80a5e83e24f1299fe35ee"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/KeyInjection.swift": {
+    "bytes": 7003,
+    "sha256": "e83091c5420050be41930692035490009e83efcb1d8afef6561877be231a03fe"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/OverlayCursorController.swift": {
+    "bytes": 21756,
+    "sha256": "7f97f31e7ceb0bfc3ef68d10e5fca6012bf0e433a1da9d2457afb75fa81de6c2"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/OverlayHelperController.swift": {
+    "bytes": 2531,
+    "sha256": "8d935d0d4a370192b9fbcd8b250d24c5716c9e29c64fa8571001977748c4f6b7"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/Pasteboard.swift": {
+    "bytes": 2391,
+    "sha256": "351285b6a420f6c19c0d95621a23651e3991e502a739c87a953232dddad95b76"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/Permissions.swift": {
+    "bytes": 1488,
+    "sha256": "81b19f5536e4d2985554166a04da5f385f9cd28d54a04329192c081ba13a5e1c"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/UIElementService.swift": {
+    "bytes": 25281,
+    "sha256": "2b4fd6fcaa081f21b9f6e4baa9250de2926097e5a30a36d92734c687524fffbb"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/Version.swift": {
+    "bytes": 88,
+    "sha256": "85f7e6ef20628feeaa2a5955df198b9f25664225413a73bcb2bf0590cf6a33be"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/VirtualCursor.swift": {
+    "bytes": 22231,
+    "sha256": "828b3091596820047c59ee538d107514c198aa61e33715cc7f87180790038f5f"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/VirtualCursorRenderer.swift": {
+    "bytes": 22008,
+    "sha256": "b6b9a2453d617452ae4b1cdc7b3d6c799cca285586ad425ce81b969366b122d0"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseCore/WindowCapture.swift": {
+    "bytes": 17952,
+    "sha256": "53133f95e7c162bc17c209b16e6b01aca294bc749934a17206d69616dae9231a"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseMCP/main.swift": {
+    "bytes": 89130,
+    "sha256": "afc85ee1dfc43b9def983c2882ec646e284eaf7040a64fc4318c2fd489c65d69"
+  },
+  "vendor/open-codex-computer-use/Sources/ClaudexComputerUseOverlayHelper/main.swift": {
+    "bytes": 10609,
+    "sha256": "898ef98ba87c372cdcc6f45aeacc22e5497c6f40ae2e2255794143447ec06445"
+  },
+  "vendor/open-codex-computer-use/Tests/ClaudexComputerUseCoreTests/ScreenshotOrientationTests.swift": {
+    "bytes": 2481,
+    "sha256": "61fd5b3471594da7e77bd1d6da80dbf447221ee5d9fe94edd76b88226f7020ef"
+  },
+  "vite.config.ts": {
+    "bytes": 317,
+    "sha256": "ed13c8431ee09c37c41ee95f8cec8e77ccfd850ceeb251e206b9e0f9821b3720"
+  }
+}

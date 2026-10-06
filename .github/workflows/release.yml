@@ -1,0 +1,77 @@
+name: Build macOS release
+on:
+  workflow_dispatch:
+    inputs:
+      signed:
+        description: Developer ID sign and notarize (requires configured secrets)
+        type: boolean
+        default: false
+      draft_release:
+        description: Create a GitHub draft release after verification
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.3
+          cache: npm
+      - name: Check architecture
+        run: test "$(uname -m)" = arm64
+      - run: npm ci
+      - name: Prepare notarization key file
+        if: inputs.signed
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+        run: |
+          node -e 'const fs=require("fs"),path=require("path");if(!process.env.APPLE_API_KEY_CONTENT)throw new Error("Missing APPLE_API_KEY_CONTENT");const p=path.join(process.env.RUNNER_TEMP,"agentbridge-notary-key.p8");fs.writeFileSync(p,process.env.APPLE_API_KEY_CONTENT,{mode:0o600});fs.appendFileSync(process.env.GITHUB_ENV,"APPLE_API_KEY="+p+"\n");'
+      - name: Build self-contained DMG
+        env:
+          AGENTBRIDGE_SIGNED_RELEASE: ${{ inputs.signed && '1' || '' }}
+          CSC_LINK: ${{ inputs.signed && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ inputs.signed && secrets.CSC_KEY_PASSWORD || '' }}
+          APPLE_API_KEY: ${{ env.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ inputs.signed && secrets.APPLE_API_KEY_ID || '' }}
+          APPLE_API_ISSUER: ${{ inputs.signed && secrets.APPLE_API_ISSUER || '' }}
+        run: npm run dist
+      - run: npm test
+      - run: npm run test:handoff
+      - run: python3 -m unittest discover -s tests -p 'test_package_public.py'
+      - name: Verify packaged runtime without installed developer tools
+        run: |
+          ELECTRON_RUN_AS_NODE=1 'dist/mac-arm64/AgentBridge Studio.app/Contents/MacOS/AgentBridge Studio' scripts/check-installed.cjs 'dist/mac-arm64/AgentBridge Studio.app/Contents/Resources' > dist/INSTALL_CHECK.json
+          codesign --verify --deep --strict 'dist/mac-arm64/AgentBridge Studio.app'
+      - name: Check notarization ticket
+        if: inputs.signed
+        run: xcrun stapler validate 'dist/mac-arm64/AgentBridge Studio.app'
+      - run: npm run package:public
+      - name: Collect release attachments
+        run: |
+          mkdir -p release-assets
+          cp dist/*.dmg dist/INSTALL_CHECK.json dist-public/*.zip README.md docs/RELEASE_NOTES.md release-assets/
+          cd release-assets
+          shasum -a 256 *.dmg *.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AgentBridge-Studio-arm64
+          path: release-assets/
+      - name: Create draft release
+        if: inputs.draft_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SIGNED_RELEASE: ${{ inputs.signed }}
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          qualifier='ad-hoc signed, not notarized'
+          if [ "$SIGNED_RELEASE" = true ]; then qualifier='Developer ID signed and notarized'; fi
+          gh release create "v${version}" --target "$GITHUB_SHA" --draft --title "AgentBridge Studio ${version} (${qualifier})" --notes-file docs/RELEASE_NOTES.md release-assets/*
+      - name: Remove temporary signing API key
+        if: always() && inputs.signed
+        run: rm -f -- "$RUNNER_TEMP/agentbridge-notary-key.p8"
