@@ -1,0 +1,5 @@
+{
+  "port": 8787,
+  "root": null,
+  "note": "null uses the current Runtime owner's home directory. Gateway binds only 127.0.0.1."
+}

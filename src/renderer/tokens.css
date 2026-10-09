@@ -1,0 +1,980 @@
+/* ============================================================================
+   AgentBridge Studio — design tokens, materials, and motion curves.
+
+   Loaded before styles.css so the base layer can be overridden by it.
+   Two ideas do most of the work here:
+
+   1. MATERIAL WEIGHT ENCODES HIERARCHY. Structural regions (sidebar) wear the
+      heavier, darker material. Interactive surfaces (composer, popovers) wear
+      the lighter one. A light translucent surface is never stacked on another
+      light translucent surface — legibility collapses when it is.
+
+   2. EASING IS SPRING MATH. Every --ease-* below is a sampled damped-harmonic
+      solution, not a hand-tuned cubic-bezier. Critically damped (no overshoot)
+      is the default; bounce is reserved for releases that carried momentum.
+   ========================================================================= */
+
+:root {
+  /* ---- Type ---------------------------------------------------------------
+     Tracking is size-specific and expressed in `em` so it scales with the
+     user's text size instead of drifting off at large sizes: large display text
+     wants negative tracking, small text wants slightly positive. Leading
+     tracks size inversely — tight on headings, open on body copy.            */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC",
+    "Helvetica Neue", sans-serif;
+  --font-mono: "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+  --text-caption: 10px;
+  --text-small: 11px;
+  --text-body: 13px;
+  --text-control: 12px;
+  --text-title: 17px;
+  --text-page: 29px;
+  --text-display: clamp(24px, 2.65vw, 34px);
+
+  --track-caption: 0.02em;
+  --track-small: 0.005em;
+  --track-body: 0em;
+  --track-title: -0.012em;
+  --track-page: -0.022em;
+  --track-display: -0.03em;
+
+  --lead-caption: 1.5;
+  --lead-body: 1.62;
+  --lead-title: 1.32;
+  --lead-page: 1.18;
+  --lead-display: 1.12;
+
+  /* ---- Space -------------------------------------------------------------- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+
+  --r-chip: 6px;
+  --r-control: 9px;
+  --r-panel: 13px;
+  --r-sheet: 19px;
+  --r-pill: 999px;
+
+  /* ---- Spring easing curves (sampled from damped-harmonic solutions) ------
+     crit_400 / crit_250 / soft_500 : zeta = 1.0, no overshoot. House default.
+     momentum_300 / bounce_350     : zeta < 1.0, slight overshoot. Only for
+                                     surfaces a flick actually threw.          */
+  --ease-crit_400: linear(0, 0.0693, 0.2118, 0.3679, 0.511, 0.6311, 0.7268, 0.8007, 0.8562, 0.8973, 0.9271, 0.9487, 0.9641, 0.9749, 0.9826, 0.988, 0.9917, 0.9943, 0.9961, 0.9973, 0.9982, 0.9988, 0.9992, 0.9994, 0.9996, 0.9997, 0.9998, 0.9999, 0.9999, 0.9999, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+  --ease-crit_250: linear(0, 0.0693, 0.2118, 0.3679, 0.511, 0.6311, 0.7268, 0.8007, 0.8562, 0.8973, 0.9271, 0.9487, 0.9641, 0.9749, 0.9826, 0.988, 0.9917, 0.9943, 0.9961, 0.9973, 0.9982, 0.9988, 0.9992, 0.9994, 0.9996, 0.9997, 0.9998, 0.9999, 0.9999, 0.9999, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+  --ease-soft_500: linear(0, 0.0693, 0.2118, 0.3679, 0.511, 0.6311, 0.7268, 0.8007, 0.8562, 0.8973, 0.9271, 0.9487, 0.9641, 0.9749, 0.9826, 0.988, 0.9917, 0.9943, 0.9961, 0.9973, 0.9982, 0.9988, 0.9992, 0.9994, 0.9996, 0.9997, 0.9998, 0.9999, 0.9999, 0.9999, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+  --ease-momentum_300: linear(0, 0.0729, 0.2309, 0.4111, 0.579, 0.7187, 0.8259, 0.9026, 0.9541, 0.986, 1.0039, 1.0124, 1.0151, 1.0145, 1.0123, 1.0095, 1.0069, 1.0047, 1.003, 1.0017, 1.0008, 1.0003, 1, 0.9998, 0.9998, 0.9998, 0.9998, 0.9998, 0.9999, 0.9999, 0.9999, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+  --ease-bounce_350: linear(0, 0.0744, 0.2394, 0.431, 0.6112, 0.7609, 0.8739, 0.9519, 1.0005, 1.0266, 1.0371, 1.0378, 1.0331, 1.026, 1.0187, 1.0123, 1.0071, 1.0034, 1.0009, 0.9995, 0.9987, 0.9985, 0.9986, 0.9988, 0.9991, 0.9994, 0.9996, 0.9998, 0.9999, 1, 1, 1, 1, 1.0001, 1.0001, 1.0001, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Materials. Translucency is a floating functional layer, not decoration: it
+   gives structure without stealing focus from the content underneath.
+   The inset top highlight is the light catching the material's edge — it is
+   what separates a real material from a flat translucent rectangle.
+   ------------------------------------------------------------------------ */
+.studio {
+  /* Structural material — heavier, and visibly so. A near-white chrome over a
+     white page reads as no separation at all, which defeats the point: the
+     sidebar has to read as a distinct plane that content sits on top of. */
+  --mat-chrome: rgba(240, 240, 239, 0.8);
+  --mat-chrome-blur: 30px;
+  --mat-edge: rgba(255, 255, 255, 0.6);
+  --mat-edge-ink: rgba(0, 0, 0, 0.09);
+  --mat-veil: rgba(0, 0, 0, 0.05);
+
+  /* Interactive material — lighter, and never stacked on another light one.
+     White cards pop against the grey structural plane instead of dissolving
+     into it. */
+  --mat-raised: rgba(255, 255, 255, 0.92);
+  --mat-raised-blur: 24px;
+
+  /* Larger surfaces read as thicker: stronger blur, deeper shadow. */
+  --mat-sheet: rgba(250, 250, 250, 0.94);
+  --mat-sheet-blur: 40px;
+  --mat-scrim: rgba(0, 0, 0, 0.28);
+
+  /* Vibrancy text: over blurred/translucent surfaces, flat gray goes muddy.
+     Raise contrast, add a hair of tracking, and let colour live on a solid
+     layer underneath rather than in the translucent foreground. */
+  --mat-ink: #1c1c1e;
+  --mat-ink-muted: #6b6b70;
+  --mat-ink-subtle: #93939a;
+
+  --shadow-material: 0 0 0 0.5px var(--mat-edge-ink), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sheet: 0 0 0 0.5px var(--mat-edge-ink), 0 24px 64px rgba(0, 0, 0, 0.16),
+    0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-raised: 0 0 0 0.5px var(--mat-edge-ink), 0 2px 8px rgba(0, 0, 0, 0.07),
+    0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.studio[data-theme="dark"] {
+  --mat-chrome: rgba(32, 32, 34, 0.66);
+  --mat-chrome-blur: 34px;
+  --mat-edge: rgba(255, 255, 255, 0.1);
+  --mat-edge-ink: rgba(0, 0, 0, 0.5);
+  --mat-veil: rgba(0, 0, 0, 0.24);
+
+  --mat-raised: rgba(52, 52, 55, 0.82);
+  --mat-raised-blur: 26px;
+
+  --mat-sheet: rgba(40, 40, 43, 0.88);
+  --mat-sheet-blur: 46px;
+  --mat-scrim: rgba(0, 0, 0, 0.5);
+
+  --mat-ink: #f2f2f4;
+  --mat-ink-muted: #a9a9b0;
+  --mat-ink-subtle: #7c7c84;
+
+  --shadow-material: 0 0 0 0.5px var(--mat-edge-ink), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-sheet: 0 0 0 0.5px var(--mat-edge-ink), 0 28px 72px rgba(0, 0, 0, 0.62),
+    0 6px 16px rgba(0, 0, 0, 0.4);
+  --shadow-raised: 0 0 0 0.5px var(--mat-edge-ink), 0 2px 10px rgba(0, 0, 0, 0.44),
+    0 10px 28px rgba(0, 0, 0, 0.32);
+}
+
+/* Apply the material to the floating chrome. Content scrolls underneath. */
+.studio-sidebar,
+.studio-topbar,
+.composer-box,
+.popup-menu,
+.modal-panel,
+.transfer-row,
+.engine-card,
+.section-card {
+  background: var(--mat-chrome);
+  -webkit-backdrop-filter: blur(var(--mat-chrome-blur)) saturate(180%);
+  backdrop-filter: blur(var(--mat-chrome-blur)) saturate(180%);
+  box-shadow: var(--shadow-material);
+}
+
+.composer-box,
+.popup-menu,
+.transfer-row,
+.engine-card,
+.section-card {
+  background: var(--mat-raised);
+  -webkit-backdrop-filter: blur(var(--mat-raised-blur)) saturate(180%);
+  backdrop-filter: blur(var(--mat-raised-blur)) saturate(180%);
+  box-shadow: var(--shadow-raised);
+}
+
+.modal-panel {
+  background: var(--mat-sheet);
+  -webkit-backdrop-filter: blur(var(--mat-sheet-blur)) saturate(180%);
+  backdrop-filter: blur(var(--mat-sheet-blur)) saturate(180%);
+  box-shadow: var(--shadow-sheet);
+}
+
+.modal-backdrop {
+  background: var(--mat-scrim);
+}
+
+/* Scroll edge effect instead of a hard divider: a short fade where content
+   meets the floating chrome, only where chrome actually overlaps content. */
+.studio-main::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 20px;
+  z-index: 40;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--mat-veil), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  opacity: 0;
+  transition: opacity 200ms var(--ease-crit_400);
+}
+
+.studio-main[data-scrolling="true"]::before {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Hit targets. Small icon buttons are visually 28px but carry ~10px of
+   invisible padding, so the target is a comfortable size without the chrome
+   growing. Hysteresis also lets a press be cancelled by dragging away.
+   ------------------------------------------------------------------------ */
+.icon-btn,
+.icon-button {
+  position: relative;
+}
+
+.icon-btn::after,
+.icon-button::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+}
+
+.icon-btn.tiny::after,
+.icon-button.tiny::after {
+  inset: -8px;
+}
+
+/* Press feedback lands on pointer-down, not on release. */
+.icon-btn:active:not(:disabled),
+.icon-button:active:not(:disabled),
+.secondary:active:not(:disabled),
+.primary:active:not(:disabled),
+.ghost:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform 90ms var(--ease-crit_250);
+}
+
+/* ---------------------------------------------------------------------------
+   Progress tracks. A progress bar reports a fact; it must not lag behind the
+   fact. Width is written directly from the byte count with no tween, so the
+   bar and the number always agree. The only animated part is the state
+   colour, which is a categorical change, not a position.
+   ------------------------------------------------------------------------ */
+.progress-track {
+  position: relative;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--text) 11%, transparent);
+  overflow: hidden;
+}
+
+.progress-track > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text);
+  will-change: width;
+  transition: background-color 240ms var(--ease-crit_400);
+}
+
+.transfer-row.completed .progress-track > i {
+  background: var(--green);
+}
+
+.transfer-row.error .progress-track > i {
+  background: var(--red);
+}
+
+/* A running transfer gets a slow, low-contrast sweep. It is ambient, so it is
+   deliberately near-invisible and never loops fast enough to pull the eye. */
+.transfer-row.running .progress-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--bg) 55%, transparent),
+    transparent
+  );
+  animation: transfer-sweep 2.4s var(--ease-crit_500, var(--ease-soft_500)) infinite;
+  pointer-events: none;
+}
+
+@keyframes transfer-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Sidebar geometry is driven by a motion value, not by a CSS transition.
+   A transition cannot be interrupted mid-flight, cannot carry release
+   velocity, and cannot be grabbed and reversed — which is exactly what a
+   resizer has to support. The grid column and the sidebar share one variable
+   so the surface tracks the pointer 1:1 with no lag.
+   ------------------------------------------------------------------------ */
+.studio {
+  grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr);
+}
+
+.studio-sidebar {
+  width: var(--sidebar-w, 260px);
+  position: relative;
+  z-index: 30;
+}
+
+/* Collapsing is a width change now, not a slide — so the fade is the only
+   thing left to express it. Padding and border have to go too: a border-box
+   width of 0 still resolves to padding + border (24px + 1px here), which
+   leaves a dead gutter where the sidebar used to be. */
+.studio.sidebar-collapsed .studio-sidebar {
+  opacity: 0;
+  transform: none;
+  pointer-events: none;
+  padding-left: 0;
+  padding-right: 0;
+  border-right-width: 0;
+}
+
+/* The resizer is a sibling of the sidebar, not a child. Inside the aside it was
+   clipped by its `overflow: hidden` and its 1px border, which silently halved
+   the hit area to 7px — right on the boundary, where a press is least
+   reliable. The grid container has no clip, so the target is its full width. */
+.studio {
+  position: relative;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  left: var(--sidebar-w, 260px);
+  width: 16px;
+  height: 100%;
+  margin-left: -8px;
+  z-index: 45;
+  cursor: col-resize;
+  touch-action: none;
+  -webkit-app-region: no-drag;
+  display: grid;
+  place-items: center;
+}
+
+.sidebar-resizer-line {
+  width: 1px;
+  height: 100%;
+  background: var(--focus);
+  opacity: 0;
+  transform: scaleY(0.4);
+  transform-origin: center;
+  transition: opacity 140ms var(--ease-crit_400), transform 220ms var(--ease-crit_400);
+}
+
+.sidebar-resizer:hover .sidebar-resizer-line,
+.sidebar-resizer.dragging .sidebar-resizer-line,
+.sidebar-resizer:focus-visible .sidebar-resizer-line {
+  opacity: 0.55;
+  transform: scaleY(1);
+}
+
+.sidebar-resizer.dragging .sidebar-resizer-line {
+  opacity: 1;
+}
+
+.sidebar-resizer:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: 3px;
+}
+
+/* The scroll-edge fade needs a positioned ancestor. */
+.studio-main {
+  position: relative;
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced-transparency and increased-contrast. These become mandatory the
+   moment real materials ship: a user who cannot resolve translucency must get
+   an opaque surface and a defined border, not a degraded glass look.
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-transparency: reduce) {
+  .studio {
+    --mat-chrome: #f6f6f5;
+    --mat-raised: #ffffff;
+    --mat-sheet: #ffffff;
+    --mat-scrim: rgba(0, 0, 0, 0.42);
+  }
+  .studio[data-theme="dark"] {
+    --mat-chrome: #202022;
+    --mat-raised: #2c2c2e;
+    --mat-sheet: #2a2a2c;
+  }
+  .studio-sidebar,
+  .studio-topbar,
+  .composer-box,
+  .popup-menu,
+  .modal-panel,
+  .transfer-row,
+  .engine-card,
+  .section-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    border: 1px solid var(--line-strong);
+  }
+  .modal-panel {
+    border-color: var(--line-strong);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .studio {
+    --mat-ink-muted: var(--text);
+    --mat-ink-subtle: var(--muted);
+    --mat-edge-ink: currentColor;
+  }
+  .studio-sidebar,
+  .studio-topbar,
+  .composer-box,
+  .popup-menu,
+  .modal-panel,
+  .transfer-row,
+  .engine-card,
+  .section-card {
+    border: 1px solid var(--line-strong);
+  }
+  .message-body a {
+    text-decoration-color: currentColor;
+  }
+  :focus-visible {
+    outline-width: 3px;
+  }
+}
+
+/* Text on translucent surfaces uses vibrancy ink, not flat gray. */
+.studio-topbar,
+.composer-box,
+.popup-menu,
+.modal-panel,
+.transfer-row,
+.engine-card,
+.section-card {
+  color: var(--mat-ink);
+}
+
+.studio-topbar .muted,
+.composer-box .muted,
+.popup-menu .muted,
+.modal-panel .muted,
+.transfer-row .muted,
+.engine-card .muted,
+.section-card .muted {
+  color: var(--mat-ink-muted);
+  letter-spacing: var(--track-small);
+}
+
+/* ===========================================================================
+   Transfer Center
+   ======================================================================== */
+.transfer-center {
+  margin-top: 22px;
+  border-radius: var(--r-panel);
+  padding: 16px 18px 14px;
+  background: var(--mat-raised);
+  -webkit-backdrop-filter: blur(var(--mat-raised-blur)) saturate(180%);
+  backdrop-filter: blur(var(--mat-raised-blur)) saturate(180%);
+  box-shadow: var(--shadow-raised);
+}
+
+.transfer-center-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.transfer-center-head h3 {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: var(--track-body);
+}
+
+.transfer-center-head p {
+  margin: 3px 0 0;
+  font-size: var(--text-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-muted);
+}
+
+.transfer-alert {
+  color: var(--red);
+}
+
+.transfer-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.transfer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transfer-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: var(--r-control);
+  background: color-mix(in srgb, var(--mat-raised) 55%, var(--bg));
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--text) 9%, transparent);
+}
+
+.transfer-row.running {
+  background: color-mix(in srgb, var(--mat-raised) 78%, var(--bg));
+}
+
+.transfer-row.error {
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--red) 45%, transparent);
+}
+
+.transfer-direction {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--mat-ink-muted);
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.transfer-row.running .transfer-direction {
+  color: var(--mat-ink);
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.transfer-main {
+  min-width: 0;
+}
+
+.transfer-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.transfer-meta b {
+  font-size: var(--text-control);
+  font-weight: 550;
+  letter-spacing: var(--track-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* State is a category, not a magnitude, so it is allowed to cross-fade.
+   The bar width below is not — it reports a fact and must not ease. */
+.transfer-state {
+  flex: none;
+  font-size: var(--text-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.transfer-state.completed { color: var(--green); }
+.transfer-state.error { color: var(--red); }
+.transfer-state.paused { color: var(--mat-ink-muted); }
+.transfer-state.running { color: var(--mat-ink); }
+
+.transfer-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 5px;
+  font-size: var(--text-caption);
+  color: var(--mat-ink-subtle);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-caption);
+}
+
+.transfer-error {
+  margin-top: 7px;
+  font-size: var(--text-caption);
+  line-height: var(--lead-caption);
+  color: var(--red);
+  overflow-wrap: anywhere;
+}
+
+.transfer-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.transfer-footnote {
+  margin: 12px 0 0;
+  font-size: var(--text-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-subtle);
+}
+
+/* ===========================================================================
+   Exposure mode + Engine Doctor
+   ======================================================================== */
+.exposure-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.exposure-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: var(--r-control);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--text) 11%, transparent);
+  transition: box-shadow 160ms var(--ease-crit_400),
+    background-color 160ms var(--ease-crit_400),
+    transform 90ms var(--ease-crit_250);
+}
+
+.exposure-option:hover {
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+}
+
+.exposure-option:active {
+  transform: scale(0.97);
+}
+
+.exposure-option.active {
+  background: color-mix(in srgb, var(--text) 7%, var(--bg));
+  box-shadow: 0 0 0 1.5px var(--text);
+}
+
+.exposure-option input {
+  margin: 2px 0 0;
+  flex: none;
+  accent-color: var(--text);
+}
+
+.exposure-option b {
+  display: block;
+  font-size: var(--text-control);
+  font-weight: 550;
+  letter-spacing: var(--track-body);
+}
+
+.exposure-option small {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--text-caption);
+  line-height: var(--lead-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-muted);
+}
+
+.check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 11px;
+  padding: 10px 4px;
+  box-shadow: inset 0 0.5px 0 color-mix(in srgb, var(--text) 9%, transparent);
+}
+
+.check-row:last-child {
+  box-shadow: none;
+}
+
+.check-mark {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-top: 1px;
+}
+
+.check-row.ok .check-mark {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+}
+
+.check-row.fail .check-mark {
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+}
+
+.check-row.warn .check-mark {
+  color: var(--yellow, #b8860b);
+  background: color-mix(in srgb, var(--yellow, #b8860b) 16%, transparent);
+}
+
+.check-row.unknown .check-mark {
+  color: var(--mat-ink-subtle);
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+
+.check-text {
+  min-width: 0;
+}
+
+.check-text b {
+  display: block;
+  font-size: var(--text-control);
+  font-weight: 500;
+  letter-spacing: var(--track-body);
+}
+
+.check-text code {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--text-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-subtle);
+  overflow-wrap: anywhere;
+}
+
+.check-text em {
+  display: block;
+  margin-top: 5px;
+  font-style: normal;
+  font-size: var(--text-caption);
+  line-height: var(--lead-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-muted);
+}
+
+.check-state {
+  font-size: var(--text-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-subtle);
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.check-row.ok .check-state { color: var(--green); }
+.check-row.fail .check-state { color: var(--red); }
+
+.doctor-raw {
+  margin-top: 12px;
+}
+
+.doctor-raw summary {
+  cursor: pointer;
+  font-size: var(--text-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-muted);
+}
+
+/* ===========================================================================
+   OAuth forwards
+   ======================================================================== */
+.forward-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forward-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  border-radius: var(--r-chip);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  font-size: var(--text-caption);
+  letter-spacing: var(--track-caption);
+}
+
+.forward-list code {
+  font-size: var(--text-caption);
+  color: var(--mat-ink);
+}
+
+.forward-list span {
+  flex: 1;
+  color: var(--mat-ink-muted);
+}
+
+.notice.warning,
+.notice.error {
+  color: var(--red);
+}
+
+.pill.warning {
+  color: var(--red);
+}
+
+/* ===========================================================================
+   Virtual cursor demo — on demand, never ambient.
+   ======================================================================== */
+.virtual-cursor-demo {
+  position: relative;
+  margin: 16px 0 14px;
+}
+
+.virtual-cursor-replay {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+  font-size: var(--text-caption);
+  letter-spacing: var(--track-caption);
+  color: var(--mat-ink-muted);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.virtual-cursor-replay:hover {
+  color: var(--mat-ink);
+}
+
+.virtual-cursor-replay:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 900px) {
+  .exposure-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===========================================================================
+   Retirements and corrections to the base layer.
+   Loaded last, so these win.
+
+   Sidebar geometry and opacity are no longer CSS transitions: a transition
+   cannot be interrupted, cannot inherit release velocity, and cannot be
+   grabbed and reversed — all of which a resizer has to do.
+   ========================================================================= */
+.studio {
+  transition: none;
+}
+
+.studio-sidebar {
+  transition: opacity 200ms var(--ease-crit_400);
+}
+
+/* While a drag is live, nothing in the sidebar may animate on its own. */
+.studio.resizing .studio-sidebar,
+.studio.resizing .studio-main {
+  transition: none;
+}
+
+/* The base layer's press feedback used a fixed 0.98 scale on a 160ms curve.
+   Tighter and faster, because the press has to land inside the finger's own
+   frame — a highlight that arrives late reads as a dropped input. */
+button:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform 90ms var(--ease-crit_250);
+}
+
+/* Type scale: tracking and leading are size-paired and relative, so they stay
+   correct when the user changes their text size. Fixed pixel tracking drifts
+   off at large sizes and crowds small text. */
+.welcome-heading h1 {
+  font-size: var(--text-display);
+  line-height: var(--lead-display);
+  letter-spacing: var(--track-display);
+}
+
+.page-heading h1,
+.view-heading h2 {
+  font-size: var(--text-page);
+  line-height: var(--lead-page);
+  letter-spacing: var(--track-page);
+}
+
+.studio-brand {
+  font-size: var(--text-title);
+  line-height: var(--lead-title);
+  letter-spacing: var(--track-title);
+}
+
+.modal-heading h2,
+.message-body h3,
+.section-card h3,
+.engine-card h3 {
+  letter-spacing: var(--track-title);
+}
+
+/* Body copy leads comfortably; information-dense UI leads tightly. Inverting
+   that is what makes a layout feel unconsidered. */
+.message-body {
+  font-size: var(--text-body);
+  line-height: var(--lead-body);
+  letter-spacing: var(--track-body);
+}
+
+.setting-row p,
+.page-heading p,
+.view-heading p,
+.eyebrow,
+.page-eyebrow,
+.menu-caption,
+.transfer-center-head p,
+.capability-grid span {
+  line-height: var(--lead-caption);
+  letter-spacing: var(--track-caption);
+}
+
+/* Numbers that change in place must not reflow their neighbours as their
+   glyph widths shift. */
+.transfer-state,
+.transfer-detail,
+.results-meta,
+.library-file-meta span,
+.connection-label,
+.status-dot + span {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion replaces springs with a short cross-fade rather than
+   removing feedback entirely — a user who asked for less motion still needs
+   to know that something happened. */
+@media (prefers-reduced-motion: reduce) {
+  .transfer-row.running .progress-track::after {
+    animation: none;
+  }
+  .modal-panel {
+    transform: none !important;
+    filter: none !important;
+    transition: opacity 180ms ease !important;
+  }
+  .sidebar-resizer-line {
+    transition: opacity 140ms ease, none;
+  }
+}
+
+.studio.reduce-motion .transfer-row.running .progress-track::after {
+  animation: none;
+}
+
+/* A radio inside a .section-card inherits the full-width text-input rule from
+   the base layer, which stretches the control and re-centres its glyph. */
+.exposure-option input[type="radio"] {
+  width: auto;
+  min-height: 0;
+  height: auto;
+  margin: 1px 0 0;
+  padding: 0;
+  flex: none;
+}
+
+.address-row input[type="radio"] {
+  width: auto;
+  min-height: 0;
+  flex: none;
+}
