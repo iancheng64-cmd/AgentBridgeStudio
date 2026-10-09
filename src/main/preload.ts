@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 contextBridge.exposeInMainWorld("agentBridge", {
   history:{
+    loadDrafts:()=>ipcRenderer.invoke('history:loadDrafts'),saveDrafts:(input:unknown)=>ipcRenderer.invoke('history:saveDrafts',input),
     load:()=>ipcRenderer.invoke('history:load'),save:(input:unknown)=>ipcRenderer.invoke('history:save',input),
     flushed:(id:string,ok:boolean)=>ipcRenderer.send('history:flushed',id,ok),
     onFlush:(callback:(id:string)=>void)=>{const handler=(_event:unknown,id:string)=>callback(id);ipcRenderer.on('history:flush',handler);return()=>ipcRenderer.removeListener('history:flush',handler);}

@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 interface Chat {id:string}
 /** Coalesce streaming saves; await the final commit before the window closes. */
-export function useChatHistory<T extends Chat>(chats:T[],setChats:(value:T[])=>void,legacy:()=>T[],normalize:(values:unknown[])=>T[],notify:(text:string)=>void,beforeFlush:()=>void){
+export function useChatHistory<T extends Chat>(chats:T[],setChats:(value:T[])=>void,legacy:()=>T[],normalize:(values:unknown[])=>T[],notify:(text:string)=>void,beforeFlush:()=>void,flushDrafts?:()=>Promise<unknown>){
  const [ready,setReady]=useState(false),latest=useRef(chats),saved=useRef(new Map<string,T>()),chain=useRef<Promise<unknown>>(Promise.resolve()),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);const loaded=useRef(false);latest.current=chats;
  const flush=useRef<()=>Promise<unknown>>(async()=>{});
  flush.current=()=>{
@@ -22,7 +22,7 @@ export function useChatHistory<T extends Chat>(chats:T[],setChats:(value:T[])=>v
    if(stored===null)localStorage.removeItem('studio.chats');
   };
   void initialize().catch(()=>{if(active)notify('對話讀取失敗，原有內容已保留。請先匯出／備份後再處理儲存問題。');});
-  const off=window.agentBridge.history.onFlush(id=>{beforeFlush();void flush.current().then(()=>window.agentBridge.history.flushed(id,true),()=>window.agentBridge.history.flushed(id,false));});
+  const off=window.agentBridge.history.onFlush(id=>{beforeFlush();void Promise.all([flush.current(),flushDrafts?.()]).then(()=>window.agentBridge.history.flushed(id,true),()=>window.agentBridge.history.flushed(id,false));});
   return()=>{active=false;off();if(timer.current)clearTimeout(timer.current);};
  },[]);
  useEffect(()=>{

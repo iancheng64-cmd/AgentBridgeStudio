@@ -2,9 +2,9 @@
 
 ## 使用本次產物
 
-1. 解壓 `AgentBridgeStudio-0.4.7-source.zip`。將其中 `AgentBridgeStudio/` 目錄的內容放進新 GitHub 儲存庫，包括 `.gitignore` 與 `.github/workflows/`。
+1. 解壓 `AgentBridgeStudio-0.5.6-source.zip`。將其中 `AgentBridgeStudio/` 目錄的內容放進新 GitHub 儲存庫，包括 `.gitignore` 與 `.github/workflows/`。
 2. 不要直接上傳原工作資料夾；它含歷史本機證據與建置資料。不要把 DMG、node_modules 或個人設定提交進 Git。
-3. 建立 tag `v0.4.7` 的 GitHub Release，將 DMG、來源 ZIP、SHA256SUMS.txt 附加在 Release assets。
+3. 建立 tag `v0.5.6` 的 GitHub Release，將 DMG、來源 ZIP、SHA256SUMS.txt 附加在 Release assets。
 4. 將 RELEASE_NOTES.md 作為版本說明。發布本次 DMG 時必須標示「Apple Silicon；ad-hoc signed；not notarized」，不能標示 Apple 公證。
 5. 發布前讓另一位 Mac 使用者下載測試：Gatekeeper、首次啟動、系統權限、其自己的遠端 Runtime 以及真實模型／工具任務。本機測試不能替代跨機驗收。
 

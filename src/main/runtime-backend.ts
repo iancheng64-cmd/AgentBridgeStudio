@@ -26,7 +26,7 @@ interface ConnectInput {
   autoCompactPercent?: number;
 }
 interface Dependencies { connectRelay?(input:any):Promise<Client>; connectConfig(payload: any): ConnectConfig; emit(channel: string, payload: unknown): void; window(): BrowserWindow | null;
-  libraryEntries?(ids: string[]): Promise<RuntimeAttachment[]>; libraryRoot?: string;
+  libraryEntries?(ids: string[]): Promise<RuntimeAttachment[]>; libraryRoot?: string; stateDirectory?:string;
   extensionServers?(cwd: string): Promise<MacExtensionServer[]>;
   extensions?(cwd: string): Promise<RuntimeExtensionCatalog>; readOnlyExtensionRoots?: string[];
   localTools?: { nativeCommand?: LocalToolCommand; browserCommand?: LocalToolCommand } | (()=>{nativeCommand?:LocalToolCommand;browserCommand?:LocalToolCommand});
@@ -437,8 +437,8 @@ export function registerRuntimeBackend(deps: Dependencies) {
         try {
           if (deps.libraryRoot) await fs.promises.mkdir(deps.libraryRoot, { recursive: true });
           const extensionServers = deps.extensionServers ? await deps.extensionServers(localCwd) : [];
-          toolHost = new LocalToolHost({ extensionServers, allowedRoots: [localCwd], readOnlyRoots: [...(deps.libraryRoot ? [deps.libraryRoot] : []), manifestRoot, ...extensionRoots], agentRole: "codex", ...(typeof deps.localTools==="function"?deps.localTools():deps.localTools),
-            authorize: call => authorizeMacTool(runtime, deps, call) });
+          toolHost = new LocalToolHost({ stateDirectory:deps.stateDirectory, extensionServers, allowedRoots: [localCwd], readOnlyRoots: [...(deps.libraryRoot ? [deps.libraryRoot] : []), manifestRoot, ...extensionRoots], agentRole: "codex", ...(typeof deps.localTools==="function"?deps.localTools():deps.localTools),
+            fullFilesystemAccess: input.permissionMode === "full", authorize: call => authorizeMacTool(runtime, deps, call) });
           const local = await toolHost.start();
           // The registered Mac executor forwards HTTP through the existing SSH channel.
           mcp = { name: `agentbridge_mac_${randomUUID().replaceAll("-", "")}`, url: local.url, token: local.token, environmentId: executor!.environmentId };
@@ -489,7 +489,7 @@ export function registerRuntimeBackend(deps: Dependencies) {
   ipcMain.handle('runtime:permission',(_event,id:string,value:unknown)=>{
     const runtime=getRuntime(id),mode=permissionMode(value);
     if(runtime.run&&runtime.permissionMode==='full'&&mode!=='full')throw new Error('請先停止目前工作，再降低操作權限。');
-    runtime.permissionMode=mode;runtime.snapshot.permissionMode=runtime.permissionMode;
+    runtime.permissionMode=mode;runtime.toolHost?.setFullFilesystemAccess(mode==='full');runtime.snapshot.permissionMode=runtime.permissionMode;runtime.snapshot.macTools=runtime.toolHost?.status();
     if(runtime.permissionMode==='full')for(const [key,pending]of runtime.requests){
       if(pending.request.method==='item/tool/requestUserInput')continue;
       if(pending.localResolve){clearTimeout(pending.timer);pending.localResolve(Boolean(runtime.run&&!runtime.run.cancelled&&!runtime.run.backgroundTextOnly));}

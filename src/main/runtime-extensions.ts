@@ -1,3 +1,4 @@
+import {coreRuntimeInstructions} from './agent-core-tools';
 import fs from "node:fs/promises";
 import path from "node:path";
 import {randomUUID} from "node:crypto";
@@ -32,6 +33,7 @@ export async function writeExtensionManifest(file: string, catalog: RuntimeExten
 export function macRuntimeInstructions(cwd: string, manifestPath: string, toolNames: string[], catalog: RuntimeExtensionCatalog) {
   const enabledSkills = catalog.items.filter(item => item.kind === "skill" && item.enabled && item.path).length;
   return [
+    coreRuntimeInstructions,
     "You are the Codex assistant in AgentBridge Studio. Respond in the user's language (Traditional Chinese by default).",
     "The user describes tasks in normal language. Select and use the available tools to complete authorized work; do not require the user to name MCP servers, spell tool names, or manually write tool calls.",
     `All shell, patch, filesystem, and view_image operations in this conversation are bound to the user's Mac executor. The selected Mac working directory is ${JSON.stringify(cwd)}. The Runtime machine supplies authentication and model orchestration only; never assume its local filesystem, shell, browsers, or desktop is the execution target.`,

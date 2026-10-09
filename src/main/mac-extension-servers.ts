@@ -77,6 +77,7 @@ export class MacExtensionClient {
       this.client.onclose = () => { this.connected = false; };
       this.client.onerror = () => {};
       await this.client.connect(transport, { timeout: this.spec.startupTimeoutMs || 10000 }); this.connected = true;
+      if(!this.client.getServerCapabilities()?.tools)return [];
       tools = []; let cursor: string | undefined;
       for (let page = 0; page < 100; page++) {
         const listed = await this.client.listTools(cursor ? { cursor } : {}, { timeout: this.spec.startupTimeoutMs || 10000 });
@@ -92,6 +93,21 @@ export class MacExtensionClient {
     if (!this.running || signal?.aborted) throw new Error("Mac MCP unavailable or cancelled");
     if (this.stdio) return this.stdio.call(name, args, signal);
     return this.client!.callTool({ name, arguments: args }, undefined, { signal, timeout: this.spec.toolTimeoutMs || 60000 });
+  }
+  async resource(method:string,params:Record<string,unknown>,signal?:AbortSignal){
+    if(!this.running||signal?.aborted)throw new Error('Mac MCP unavailable or cancelled');
+    if(this.stdio)return this.stdio.resource(method,params,signal);
+    const capability=method.startsWith('resources/')?'resources':'prompts';
+    if(!this.client!.getServerCapabilities()?.[capability])throw new Error('Mac MCP server does not support '+capability);
+    const options={signal,timeout:this.spec.toolTimeoutMs||60000};
+    switch(method){
+      case 'resources/list':return this.client!.listResources(params,options);
+      case 'resources/templates/list':return this.client!.listResourceTemplates(params,options);
+      case 'resources/read':return this.client!.readResource(params as {uri:string},options);
+      case 'prompts/list':return this.client!.listPrompts(params,options);
+      case 'prompts/get':return this.client!.getPrompt(params as {name:string;arguments?:Record<string,string>},options);
+      default:throw new Error('Invalid MCP resource method');
+    }
   }
   async stop() { this.connected = false; await this.stdio?.stop(); await this.client?.close(); this.client = undefined; }
 }

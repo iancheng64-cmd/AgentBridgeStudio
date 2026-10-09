@@ -23,7 +23,7 @@ export interface ClaudeLocalDependencies {
   emit(channel: string, payload: unknown): void;
   window(): BrowserWindow | null;
   libraryEntries?(ids: string[]): Promise<RuntimeAttachment[]>;
-  libraryRoot?: string;
+  libraryRoot?: string; stateDirectory?:string;
   localTools?: { nativeCommand?: LocalToolCommand; browserCommand?: LocalToolCommand } | (()=>{nativeCommand?:LocalToolCommand;browserCommand?:LocalToolCommand});
   claudeManifest?: () => unknown;
 }
@@ -116,7 +116,8 @@ export function registerClaudeLocalBackend(deps: ClaudeLocalDependencies) {
     let runtime: Runtime | undefined; let host: LocalToolHost | undefined; let endpoint: any;
     try {
       if (deps.libraryRoot) await fs.mkdir(deps.libraryRoot, { recursive: true });
-      host = new LocalToolHost({ allowedRoots: [cwd],extensionServers:await deps.extensionServers?.(cwd),enableShell:remote,readOnlyRoots: deps.libraryRoot ? [deps.libraryRoot] : [], agentRole: "claude", ...(typeof deps.localTools==="function"?deps.localTools():deps.localTools),
+      host = new LocalToolHost({ stateDirectory:deps.stateDirectory, allowedRoots: [cwd],extensionServers:await deps.extensionServers?.(cwd),enableShell:remote,readOnlyRoots: deps.libraryRoot ? [deps.libraryRoot] : [], agentRole: "claude", ...(typeof deps.localTools==="function"?deps.localTools():deps.localTools),
+        fullFilesystemAccess:permissionMode === "full",
         authorize: async (call: LocalToolCall) => {
           if (!runtime || runtime.closed || !runtime.cli.busy || runtime.backgroundTextOnly) return false;
           if (call.category === "agent-bridge" || runtime.permissionMode === "full" || (runtime.permissionMode === "project" && call.category === "filesystem-read")) return true;
@@ -148,7 +149,7 @@ export function registerClaudeLocalBackend(deps: ClaudeLocalDependencies) {
   };
   ipcMain.handle('claude:connect',connectClaude);
   ipcMain.handle('claude:permission',(_event,id:string,value:unknown)=>{
-    const runtime=get(id),mode=permissionMode(value);runtime.cli.setPermissionMode(mode);runtime.permissionMode=mode;
+    const runtime=get(id),mode=permissionMode(value);runtime.cli.setPermissionMode(mode);runtime.permissionMode=mode;runtime.host?.setFullFilesystemAccess(mode==='full');
     if(runtime.permissionMode==='full')for(const pending of [...runtime.pending.values()])if(!pending.isQuestion)pending.resolve({allow:runtime.cli.busy&&!runtime.backgroundTextOnly});
     return snapshot(runtime);
   });

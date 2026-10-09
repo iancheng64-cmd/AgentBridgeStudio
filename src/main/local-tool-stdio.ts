@@ -11,6 +11,7 @@ export class LocalToolStdio {
   private buffer = Buffer.alloc(0);
   private queue: Promise<unknown> = Promise.resolve();
   private closing = false;
+  capabilities:Record<string,unknown>={};
   constructor(private spec: LocalToolCommand, private timeoutMs = 60_000) {}
   get processId(){return this.child?.pid;}
   get running() { return !!this.child && !this.closing; }
@@ -43,8 +44,10 @@ export class LocalToolStdio {
       }
     });
     try {
-      await this.request("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "AgentBridge", version: "0.3.0" } });
+      const initialized=await this.request("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "AgentBridge", version: "0.3.0" } });
+      this.capabilities=initialized?.capabilities||{};
       this.child?.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
+      if(initialized?.capabilities&&!initialized.capabilities.tools)return [];
       const tools: LocalMcpTool[] = []; let cursor: string | undefined;
       for (let page = 0; page < 100; page++) {
         const result = await this.request("tools/list", cursor ? { cursor } : {});
@@ -68,6 +71,13 @@ export class LocalToolStdio {
     });
     this.queue = operation.catch(() => {});
     return operation;
+  }
+  resource(method:string,params:Record<string,unknown>,signal?:AbortSignal){
+    if(!['resources/list','resources/templates/list','resources/read','prompts/list','prompts/get'].includes(method))throw new Error('Invalid MCP resource method');
+    const capability=method.startsWith('resources/')?'resources':'prompts';
+    if(!this.capabilities[capability])throw new Error('Mac MCP server does not support '+capability);
+    const operation=this.queue.then(async()=>{if(signal?.aborted)throw new Error('Request cancelled');const abort=()=>{void this.stop();};signal?.addEventListener('abort',abort,{once:true});try{return await this.request(method,params);}finally{signal?.removeEventListener('abort',abort);}});
+    this.queue=operation.catch(()=>{});return operation;
   }
   private request(method: string, params: unknown): Promise<any> {
     if (!this.running) return Promise.reject(new Error("Local MCP process unavailable"));

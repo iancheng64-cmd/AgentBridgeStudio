@@ -1,17 +1,27 @@
 # AgentBridge Studio
-0.5.5 continues stopped tasks in the same conversation, resumes native threads when compatible and restores bounded local text after an App restart or route change. It also rechecks login and reloads native credentials after login changes. Blocked drafts stay in place and repeated sends during login checks are ignored. Previous SSH, usage and long-chat fixes remain. See [release acceptance](docs/RELEASE_ACCEPTANCE.md) for verified scope.
+0.5.7 fixes full-access file scope, unsent draft loss, model preference resets and two-agent continuation. Previous stop/resume, SSH, usage and long-chat fixes remain. See [publish readiness](docs/PUBLISH_READINESS.md) for verified scope.
 
 [English](README_EN.md) · [繁體中文](README.md)
 
 Chat with OpenAI Codex and Anthropic Claude Code on your Mac, empowering agents to operate files, shell commands, native applications, and browsers on **this Mac**. Model runtime execution and login credentials remain on your chosen remote host, while operational tools execute locally on your Mac.
 
-**Version 0.5.5 · Apple Silicon · macOS 13 or later**
+**Version 0.5.6 · Apple Silicon · macOS 13 or later**
 
 > **Note:** This is a remote runtime client. You do not need to install Node.js, Python, Homebrew, Codex Mac executors, Computer Use MCP servers, or browsers to get started. Initial use requires connecting to a reachable, authenticated remote runtime and granting required macOS system permissions. This application does not include free AI accounts or offline models.
 
 ---
 
-## Stability in 0.5.5
+## 0.5.7 built-in agent tools
+
+The app now bundles tolerant filename/content search, conflict-checked text editing, tracked shell commands, bundled Node execution, durable task checkpoints, public text-page fetching, and MCP resource/prompt adapters. Core tools require no additional download. Both Codex and Claude use the Mac execution route and existing permission settings.
+
+Search reports skipped inaccessible directories instead of discarding readable results. Checkpoints use separate task IDs and revision checks. Owned commands are bounded and cancelled on Stop, turn completion or disconnect. See [capabilities and limits](docs/AGENT_CAPABILITIES.md). Third-party project requirements such as GitNexus require a configured external integration; built-in search does not impersonate them. Native account login and macOS permissions still apply.
+
+## Stability in 0.5.6
+
+Full access removes workspace-only file restrictions. Read-only operations requiring root can request native macOS administrator authorization, without passing passwords to the model or running the whole App as root. Full Disk Access, SIP and filesystem permissions remain applicable.
+
+Unsent text and attachments persist per conversation across navigation and normal restarts. Model and reasoning preferences persist per agent. Two-agent continuation reuses the same conversation with bounded prior context.
 
 Long messages and conversation history are paged without discarding text. Streaming updates are batched and completed message bodies are memoized. Conversations use atomic local files; the legacy key is removed only after a successful migration. Closing waits for the final save.
 
@@ -34,7 +44,7 @@ flowchart TD
         Core["Local Execution Core (Local Executor)"]
         
         subgraph Tools["Bundled Local Tools"]
-            FS["Files & Shell (Workspace Sandbox)"]
+            FS["Files & Shell (Permission Mode)"]
             CU["Native Computer Use (Swift / AXUIElement)"]
             Browser["Isolated Playwright (Chromium Sandbox)"]
             MCPGateway["Local MCP Gateway (127.0.0.1 Loopback)"]
@@ -108,7 +118,7 @@ npm start
 
 ### Option 2: Download Packaged DMG (No Build Required)
 
-Go to the **[Releases](https://github.com/iancheng64-cmd/AgentBridgeStudio/releases)** page and download `AgentBridge-Studio-0.5.5-arm64.dmg`.
+Go to the **[Releases](https://github.com/iancheng64-cmd/AgentBridgeStudio/releases)** page and download `AgentBridge-Studio-0.5.6-arm64.dmg`.
 
 1. Open the DMG and drag **AgentBridge Studio** to **Applications**.
 2. Launch the app from `/Applications`; do not run directly inside the DMG.

@@ -184,3 +184,41 @@ test('private proxy health requires real calls and recovery replaces failed chil
   assert.equal((await f.request('tools/list')).status,200);assert.equal(f.host.status().unavailable.includes('computer'),false);
  }finally{await f.cleanup();}
 });
+
+
+test('filesystem root slash includes nested paths instead of requiring a double slash', async () => {
+  const f = await fixture({allowedRoots:[path.parse(process.cwd()).root]});
+  try { const result=await f.call('mac_fs_stat',{path:f.root});assert.equal(result.isError,undefined,result.content[0].text); }
+  finally {await f.cleanup();}
+});
+
+test('explicit full access reaches outside the workspace and can be revoked live', async () => {
+  const outside=await fs.mkdtemp(path.join(os.tmpdir(),'agentbridge-full-access-'));
+  const f=await fixture({fullFilesystemAccess:true});
+  try {
+    const file=path.join(outside,'proof.txt');
+    let result=await f.call('mac_fs_write',{path:file,text:'full access proof'});assert.equal(result.isError,undefined,result.content[0].text);
+    assert.equal(JSON.parse((await f.call('mac_fs_read',{path:file})).content[0].text).text,'full access proof');
+    const alias=path.join(f.root,'alias');await fs.symlink(outside,alias);
+    assert.equal((await f.call('mac_fs_read',{path:path.join(alias,'proof.txt')})).isError,undefined);
+    f.host.setFullFilesystemAccess(false);
+    assert.equal((await f.call('mac_fs_read',{path:file})).isError,true);
+    assert.equal((await f.call('mac_fs_write',{path:path.join(alias,'blocked'),text:'no'})).isError,true);
+    f.host.setFullFilesystemAccess(true);
+    assert.equal((await f.call('mac_fs_stat',{path:outside})).isError,undefined);
+    assert.equal((await f.call('mac_fs_delete',{path:path.parse(outside).root})).isError,true);
+  } finally {await f.cleanup();await fs.rm(outside,{recursive:true,force:true});}
+});
+
+
+test('administrator read requires full mode, ordinary authorization and explicit request', async () => {
+  let calls=0,allowed=true;
+  const f=await fixture({authorize:()=>allowed,administratorRead:async(action,target)=>{calls++;return {action,target};}});
+  try {
+    assert.equal((await f.call('mac_fs_stat',{path:'/fixture/system',administrator:true})).isError,true);assert.equal(calls,0);
+    f.host.setFullFilesystemAccess(true);
+    let result=await f.call('mac_fs_stat',{path:'/fixture/system',administrator:true});assert.equal(result.isError,undefined,result.content[0].text);assert.equal(calls,1);
+    assert.equal(JSON.parse(result.content[0].text).action,'stat');
+    allowed=false;assert.equal((await f.call('mac_fs_read',{path:'/fixture/system',administrator:true})).isError,true);assert.equal(calls,1);
+  }finally{await f.cleanup();}
+});

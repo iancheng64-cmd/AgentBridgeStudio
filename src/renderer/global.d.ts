@@ -8,7 +8,7 @@ export interface DoctorReport { checks: DoctorCheck[]; raw: string }
 declare global {
   interface Window {
     agentBridge: {
-      history:{load():Promise<unknown[]|null>;save(input:{ids:string[];changes:unknown[]}):Promise<{saved:boolean}>;flushed(id:string,ok:boolean):void;onFlush(cb:(id:string)=>void):()=>void};
+      history:{loadDrafts?():Promise<unknown[]|null>;saveDrafts?(input:{ids:string[];changes:unknown[]}):Promise<{saved:boolean}>;load():Promise<unknown[]|null>;save(input:{ids:string[];changes:unknown[]}):Promise<{saved:boolean}>;flushed(id:string,ok:boolean):void;onFlush(cb:(id:string)=>void):()=>void};
       network:{pair(input:any):Promise<any>;diagnose(input:any):Promise<any>;files(input:any):Promise<any>;transfer(input:any):Promise<any>;cancelTransfer(id:string):Promise<any>;terminal(input:any):Promise<any>;terminalWrite(id:string,text:string):Promise<any>;terminalClose(id:string):Promise<any>;onEvent(cb:(value:any)=>void):()=>void;};
       runtime: {
         connect(input: { profile: any; password?: string; platform: "auto" | "windows" | "posix"; executable?: string; trustedFingerprint?: string; localCwd?: string; localHostExecutable?: string; permissionMode?: "ask"|"project"|"full"; autoCompactPercent?: number }): Promise<any>;

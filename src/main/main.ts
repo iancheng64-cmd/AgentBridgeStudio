@@ -686,6 +686,9 @@ function stopSession(session: RemoteSession) {
   try { session.conn.end(); } catch {}
   sessions.delete(session.id);
 }
+const composerDrafts=new ChatHistoryStore(appDataPath('composer-drafts'));
+ipcMain.handle('history:loadDrafts',()=>composerDrafts.load());
+ipcMain.handle('history:saveDrafts',(_event,input)=>composerDrafts.save(input));
 const chatHistory=new ChatHistoryStore(appDataPath('chat-history'));
 ipcMain.handle('history:load',()=>chatHistory.load());
 ipcMain.handle('history:save',(_event,input)=>chatHistory.save(input));
@@ -1347,6 +1350,7 @@ ipcMain.handle('extensions:loginMcp',async(_event,id:string)=>{
 const relayStore=new RelayStore(appDataPath('relay-devices.json'),macMcpCodec);
 registerRelayServices(relayStore,emit);
 const runtimeDependencies = {
+  stateDirectory:appDataPath("agent-task-checkpoints"),
   connectConfig, connectRelay:(input:any)=>relayStore.connect(input), emit, window: () => mainWindow,
   extensions: async (cwd:string) => {
     const catalog=await localExtensions({cwd,agent:"codex"});

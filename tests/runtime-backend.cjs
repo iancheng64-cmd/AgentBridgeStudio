@@ -306,3 +306,19 @@ test('cancelling a background discussion turn resolves even when the runtime nev
   if(result!=='rejected')assert.equal(result.status,'cancelled');
  }finally{executorEnabled=false;await invoke('disconnect',state.runtimeId);}
 });
+
+
+test('Codex full mode reaches paths outside cwd on connect and after live upgrade',async()=>{
+ executorEnabled=true;const outside=fs.mkdtempSync(path.join(os.tmpdir(),'ab-codex-outside-'));
+ for(const initial of ['project','full']){
+  const state=await invoke('connect',{...input,permissionMode:initial}),channel=clients.at(-1).channel;
+  try{
+   await invoke('send',{runtimeId:state.runtimeId,prompt:'fixture'});await waitFor(()=>channel.requests.some(r=>r.method==='turn/start'));
+   const config=Object.values(channel.threadConfig.mcp_servers).find(value=>value.enabled&&value.http_headers);
+   const stat=async()=>{const response=await fetch(config.url,{method:'POST',headers:{...config.http_headers,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'mac_fs_stat',arguments:{path:outside}}})});return(await response.json()).result;};
+   let result=await stat();assert.equal(result.isError,initial==='full'?undefined:true);
+   if(initial==='project'){await invoke('permission',state.runtimeId,'full');result=await stat();assert.equal(result.isError,undefined,result.content[0].text);}
+  }finally{await invoke('disconnect',state.runtimeId);}
+ }
+ executorEnabled=false;fs.rmSync(outside,{recursive:true,force:true});
+});

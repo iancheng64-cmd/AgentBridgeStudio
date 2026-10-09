@@ -1,3 +1,4 @@
+import {useComposerDrafts} from './useComposerDrafts';
 import {useChatHistory} from './useChatHistory';
 import {StreamTextBatcher,messageWindow} from '../main/chat-performance';
 import {flushSync} from 'react-dom';
@@ -30,6 +31,7 @@ interface Chat { executorEnvironmentId?:string; recoveryNeeded?:boolean; transpo
 interface Project { id:string; name:string; }
 interface Extension { id:string; name:string; kind:'skill'|'plugin'|'mcp'; source:'local'|'remote'; agent:string; status:string; description?:string; }
 const read = <T,>(key:string,fallback:T):T => { try { const value=JSON.parse(localStorage.getItem(key)||'null'); if(value===null)return fallback; if(Array.isArray(fallback))return Array.isArray(value)?value as T:fallback; if(typeof value!==typeof fallback)return fallback; if(key==='studio.theme'&&!['light','dark','system'].includes(value))return fallback; if(key==='studio.agent'&&!['codex','claude'].includes(value))return fallback; return value; } catch { return fallback; } };
+const readAgentPreferences=(key:string):Partial<Record<Agent,string>>=>{try{const value=JSON.parse(localStorage.getItem(key)||'null');if(!value||typeof value!=='object'||Array.isArray(value))return {};return Object.fromEntries(['codex','claude'].filter(agent=>typeof value[agent]==='string'&&value[agent].length<=256).map(agent=>[agent,value[agent]]));}catch{return {};}};
 const validAttachment=(file:any):file is Attachment=>file&&typeof file.id==='string'&&typeof file.name==='string'&&typeof file.localPath==='string'&&typeof file.size==='number';
 const normalizeChats=(values:any[]):Chat[]=>values.filter(chat=>chat&&typeof chat.id==='string'&&typeof chat.title==='string'&&Array.isArray(chat.messages)).map(chat=>({...chat,agent:chat.agent==='claude'?'claude':'codex',createdAt:Number(chat.createdAt)||Date.now(),updatedAt:Number(chat.updatedAt)||Date.now(),messages:chat.messages.filter((message:any)=>message&&typeof message.id==='string'&&typeof message.text==='string'&&['user','assistant'].includes(message.role)).map((message:any)=>({...message,status:message.status==='running'?'cancelled':message.status,tools:Array.isArray(message.tools)?message.tools.filter((tool:any)=>tool&&typeof tool.itemId==='string'&&typeof tool.title==='string').map((tool:any)=>({...tool,status:tool.status==='running'?'error':tool.status})):[],attachments:Array.isArray(message.attachments)?message.attachments.filter(validAttachment):[]}))}));
 const readChats=():Chat[]=>{const raw=localStorage.getItem('studio.chats');if(raw===null)return [];const values=JSON.parse(raw);if(!Array.isArray(values)||values.some(chat=>!chat||typeof chat.id!=='string'||typeof chat.title!=='string'||!Array.isArray(chat.messages)||chat.messages.some((message:any)=>!message||typeof message.id!=='string'||typeof message.text!=='string'||!['user','assistant'].includes(message.role))))throw new Error('原有對話格式無法讀取。');return normalizeChats(values);};
@@ -61,8 +63,7 @@ function App() {
   const [historyEnd,setHistoryEnd]=useState<number|null>(null);
   const [currentId,setCurrentId] = useState<string|null>(null);
   const [projectId,setProjectId] = useState<string|null>(null);
-  const [input,setInput] = useState('');
-  const [attachments,setAttachments] = useState<Attachment[]>([]);
+
   const [library,setLibrary] = useState<Attachment[]>([]);
   const [fileSearch,setFileSearch] = useState('');
   const [libraryMode,setLibraryMode] = useState<'grid'|'list'>('grid');
@@ -94,8 +95,8 @@ function App() {
   const selectRuntimePlatform=(value:RuntimePlatform)=>{setRuntimePlatform(value);setDraft((previous:any)=>({...previous,runtimePlatform:value}));setConnectionError(null);};
   const [runtimeExecutable,setRuntimeExecutable] = useState(()=>read('studio.runtimeExecutable','codex'));
   const [localCwd,setLocalCwd] = useState(()=>read('studio.localCwd',''));
-  const [modelsByAgent,setModelsByAgent]=useState<Partial<Record<Agent,string>>>({});
-  const [effortsByAgent,setEffortsByAgent]=useState<Partial<Record<Agent,string>>>({});
+  const [modelsByAgent,setModelsByAgent]=useState<Partial<Record<Agent,string>>>(()=>readAgentPreferences('studio.models'));
+  const [effortsByAgent,setEffortsByAgent]=useState<Partial<Record<Agent,string>>>(()=>readAgentPreferences('studio.efforts'));
   const runtimeModel=modelsByAgent[agent]||'';
   const runtimeEffort=effortsByAgent[agent]||'';
   const setRuntimeModel=(value:string)=>setModelsByAgent(previous=>({...previous,[agent]:value}));
@@ -174,7 +175,9 @@ function App() {
   const notify=useCallback((message:string)=>setToast(message),[]);
   const error=useCallback((e:unknown)=>notify(e instanceof Error?e.message:String(e)),[notify]);
   const safe=useCallback((work:()=>Promise<unknown>)=>{void work().catch(error);},[error]);
-  const historyReady=useChatHistory(chats,setChats,readChats,normalizeChats,notify,()=>flushSync(()=>streamText.current?.flush()));
+  const composer=useComposerDrafts<Attachment>(currentId?'chat:'+currentId:'new:'+agent,validAttachment,notify);
+  const {text:input,setText:setInput,attachments,setAttachments}=composer;
+  const historyReady=useChatHistory(chats,setChats,readChats,normalizeChats,notify,()=>flushSync(()=>streamText.current?.flush()),composer.flush);
   const visibleMessages=messageWindow(current?.messages.length||0,historyEnd);
   useEffect(()=>setHistoryEnd(null),[currentId]);
   const refreshLibrary=useCallback(async()=>{ if(api()?.library) setLibrary(await api().library.list()); },[]);
@@ -218,7 +221,7 @@ function App() {
     setToolsBusy(true);setHttpHealth(null);try{const result=await api().services[action](name);setHttpHealth(action==='stop'?'HTTP 工具已停止。':`${name==='computer'?'電腦':'瀏覽器'} HTTP 已接通 · ${result.health.source} · ${result.health.toolCount} 個工具 · ${result.health.probe} 讀取成功。`);}catch(e){setHttpHealth(e instanceof Error?e.message:String(e));throw e;}finally{await refreshLocal();setToolsBusy(false);}
   });
   const recoverTools=()=>{const active=runtimeRef.current;if(!active){checkToolHealth(true);return;}safe(async()=>{const result=await engineApi(active.agent||'codex').recoverTools(active.runtimeId);if(runtimeRef.current?.runtimeId===active.runtimeId)setRuntime(result);await refreshLocal();});};
-  useEffect(()=>{ for(const [key,value] of Object.entries({'studio.projects':projects,'studio.theme':theme,'studio.reduceMotion':reduceMotion,'studio.agent':agent,'studio.sidebar':sidebar,'studio.sidebarWidth':sidebarWidth,'studio.runtimePlatform':runtimePlatform,'studio.runtimeExecutable':runtimeExecutable,'studio.localCwd':localCwd,'studio.permissionMode':permissionMode,'studio.autoConnectOnLaunch':autoConnect,'studio.friendClaudeExecutable':claudeExecutable,'studio.claudeNodeExecutable':claudeNodeExecutable,'studio.claudeRemoteCwd':claudeRemoteCwd,'studio.claudeAutoCompactPercent':claudeAutoCompactPercent,'studio.codexAutoCompactPercent':codexAutoCompactPercent})) { try{localStorage.setItem(key,JSON.stringify(value));}catch{notify('本機儲存空間不足，請匯出對話以保留內容。');} } },[projects,theme,reduceMotion,agent,sidebar,sidebarWidth,runtimePlatform,runtimeExecutable,localCwd,claudeExecutable,claudeNodeExecutable,claudeRemoteCwd,claudeAutoCompactPercent,codexAutoCompactPercent,autoConnect,permissionMode,notify]);
+  useEffect(()=>{ for(const [key,value] of Object.entries({'studio.models':modelsByAgent,'studio.efforts':effortsByAgent,'studio.projects':projects,'studio.theme':theme,'studio.reduceMotion':reduceMotion,'studio.agent':agent,'studio.sidebar':sidebar,'studio.sidebarWidth':sidebarWidth,'studio.runtimePlatform':runtimePlatform,'studio.runtimeExecutable':runtimeExecutable,'studio.localCwd':localCwd,'studio.permissionMode':permissionMode,'studio.autoConnectOnLaunch':autoConnect,'studio.friendClaudeExecutable':claudeExecutable,'studio.claudeNodeExecutable':claudeNodeExecutable,'studio.claudeRemoteCwd':claudeRemoteCwd,'studio.claudeAutoCompactPercent':claudeAutoCompactPercent,'studio.codexAutoCompactPercent':codexAutoCompactPercent})) { try{localStorage.setItem(key,JSON.stringify(value));}catch{notify('本機儲存空間不足，請匯出對話以保留內容。');} } },[modelsByAgent,effortsByAgent,projects,theme,reduceMotion,agent,sidebar,sidebarWidth,runtimePlatform,runtimeExecutable,localCwd,claudeExecutable,claudeNodeExecutable,claudeRemoteCwd,claudeAutoCompactPercent,codexAutoCompactPercent,autoConnect,permissionMode,notify]);
   useEffect(()=>{const media=matchMedia('(prefers-color-scheme: dark)');const listener=()=>setSystemDark(media.matches);media.addEventListener('change',listener);return()=>media.removeEventListener('change',listener);},[]);
   useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(null),5000);return()=>clearTimeout(timer);},[toast]);
   useEffect(()=>{
@@ -337,8 +340,8 @@ function App() {
   useEffect(()=>{if(followBottom.current)messageEnd.current?.scrollIntoView({behavior:'instant'});},[current?.messages,working?.activity,historyEnd]);
   useEffect(()=>{followBottom.current=true;setShowScrollDown(false);requestAnimationFrame(()=>messageEnd.current?.scrollIntoView({behavior:'instant'}));},[currentId]);
   useEffect(()=>{if(composerRef.current){if(input.length>8000){composerRef.current.style.height='180px';}else{composerRef.current.style.height='auto';composerRef.current.style.height=Math.min(composerRef.current.scrollHeight,180)+'px';}}},[input]);
-  const startNew=useCallback(()=>{setCurrentId(null);setPage('chat');setInput('');setAttachments([]);setAttachMenu(false);requestAnimationFrame(()=>composerRef.current?.focus());},[]);
-  const openChat=(chat:Chat)=>{if(workingRef.current&&chat.agent!==agent){notify('請先停止目前工作，再切換 Agent。');return;}setCurrentId(chat.id);setAgent(chat.agent);setProjectId(chat.projectId||null);setPage('chat');setSearchOpen(false);setChatMenu(null);setInput('');setAttachments([]);};
+  const startNew=useCallback(()=>{setCurrentId(null);setPage('chat');setAttachMenu(false);requestAnimationFrame(()=>composerRef.current?.focus());},[]);
+  const openChat=(chat:Chat)=>{if(workingRef.current&&chat.agent!==agent){notify('請先停止目前工作，再切換 Agent。');return;}setCurrentId(chat.id);setAgent(chat.agent);setProjectId(chat.projectId||null);setPage('chat');setSearchOpen(false);setChatMenu(null);};
   const openSettings=(section:Setting='general')=>{setSettings(section);setModelMenu(false);};
   useEffect(()=>{
     const listener=(event:KeyboardEvent)=>{
@@ -462,7 +465,7 @@ function App() {
     const chatId=prior?.id||crypto.randomUUID(),messageId=crypto.randomUUID(),requestId=crypto.randomUUID(),now=Date.now();
     const userMessage:Message={id:crypto.randomUUID(),role:'user',text:prompt,attachments:files};const answer:Message={id:messageId,role:'assistant',text:'',status:'running'};
     setChats(previous=>prior?previous.map(chat=>chat.id===chatId?{...chat,transport:'runtime',hostKey:active.hostKey,localCwd,remoteId:nativeResume?chat.remoteId:undefined,executorEnvironmentId:nativeResume?chat.executorEnvironmentId:active.executorEnvironment?.environmentId,recoveryNeeded:restoreContext,updatedAt:now,model:runtimeModel,messages:[...chat.messages,userMessage,answer]}:chat):[{id:chatId,title:prompt.slice(0,40)||files[0]?.name||'新對話',messages:[userMessage,answer],createdAt:now,updatedAt:now,agent,transport:'runtime',projectId:projectId||undefined,hostKey:active.hostKey,localCwd,executorEnvironmentId:active.executorEnvironment?.environmentId,model:runtimeModel},...previous]);
-    followBottom.current=true;setCurrentId(chatId);setPage('chat');setInput('');setAttachments([]);
+    followBottom.current=true;composer.clear();setCurrentId(chatId);setPage('chat');
     setUsageRecords(previous=>[...previous,{requestId,agent,authMode:active.authMode,hostKey:active.hostKey||'',model:runtimeModel,startedAt:now,status:'running'} as UsageRecord].slice(-5000));
     const running={requestId,chatId,messageId,sessionId:active.runtimeId,transport:'runtime' as const,agent,activity:agent==='claude'?'Claude Code 正在思考…':'Codex 正在思考…'};workingRef.current=running;setWorking(running);
     try{await engineApi(active.agent||'codex').send({runtimeId:active.runtimeId,requestId,prompt:restoreContext?continuationContext(prior!.messages)+'\n\nNew user request:\n'+prompt:prompt,conversationId:nativeResume?prior!.remoteId:undefined,executorEnvironmentId:nativeResume?prior!.executorEnvironmentId:undefined,model:runtimeModel||undefined,effort:runtimeEffort||undefined,localCwd,attachments:files.map(file=>file.id),autoCompactPercent:active.agent==='claude'?claudeAutoCompactPercent:codexAutoCompactPercent});}
@@ -478,16 +481,17 @@ function App() {
       setAgent('claude');setConnectionMode('runtime');setSettings('connection');notify('請先連線並登入 Claude Code。');return;
     }
     if(!codex.capabilities?.localTools){setAgent('codex');setConnectionMode('runtime');setSettings('connection');notify('Codex 的 Mac Executor 尚未就緒，無法啟動自動討論。');return;}
-    const chatId=crypto.randomUUID(),messageId=crypto.randomUUID(),now=Date.now();
+    const prior=current?.agent===agent?current:undefined;
+    const chatId=prior?.id||crypto.randomUUID(),messageId=crypto.randomUUID(),now=Date.now();
     const userMessage:Message={id:crypto.randomUUID(),role:'user',text:prompt};
     const answer:Message={id:messageId,role:'assistant',text:`> **Codex ↔ Claude 自動討論** · ${collabRounds} 輪 · ${collabRounds*2+1} 次模型回合\n\n`,status:'running'};
-    setChats(previous=>[{id:chatId,title:`雙 Agent：${prompt.slice(0,34)}`,messages:[userMessage,answer],createdAt:now,updatedAt:now,agent,transport:'orchestrator',projectId:projectId||undefined,hostKey:`${codex.hostKey||codex.runtimeId}|${claude.hostKey||claude.runtimeId}`},...previous]);
-    followBottom.current=true;setCurrentId(chatId);setPage('chat');setInput('');setAttachments([]);
+    setChats(previous=>prior?previous.map(chat=>chat.id===chatId?{...chat,transport:'orchestrator',remoteId:undefined,recoveryNeeded:true,updatedAt:now,messages:[...chat.messages,userMessage,answer]}:chat):[{id:chatId,title:`雙 Agent：${prompt.slice(0,34)}`,messages:[userMessage,answer],createdAt:now,updatedAt:now,agent,transport:'orchestrator',projectId:projectId||undefined,hostKey:`${codex.hostKey||codex.runtimeId}|${claude.hostKey||claude.runtimeId}`},...previous]);
+    followBottom.current=true;composer.clear();setCurrentId(chatId);setPage('chat');
     try{
       const started=await api().orchestrator.start({
         codexRuntimeId:codex.runtimeId,
         claudeRuntimeId:claude.runtimeId,
-        topic:prompt,
+        topic:prior?continuationContext(prior.messages)+'\n\nNew user request:\n'+prompt:prompt,
         rounds:collabRounds,
         leadAgent:agent,
         codexModel:modelsByAgent.codex||undefined,
@@ -518,7 +522,7 @@ function App() {
   };
   const saveProfile=async()=>{setProfiles(await api().profiles.save({...draft,runtimePlatform}));notify('連線設定已儲存');};
   const send=async(retryText?:string,retryAttachments?:Attachment[])=>{
-    if(!historyReady){notify('正在讀取本機對話，請稍候。');return;}
+    if(!historyReady||!composer.ready){notify('正在讀取本機對話，請稍候。');return;}
     const prompt=retryText??input.trim();const files=retryAttachments??attachments;
     if((!prompt&&!files.length)||workingRef.current||sendPending.current||runtimeBusy||importing)return;
     sendPending.current=true;
@@ -604,7 +608,7 @@ function App() {
 
       <ConnectionForm draft={draft} setDraft={setDraft} onSave={()=>safe(saveProfile)} onConnect={()=>safe(()=>connectionMode==='runtime'?connectRuntime():connect())} busy={connecting||!!working} connectLabel={connectionMode==='runtime'?'連接 Runtime':'連接 SSH'}/>
       {connectionMode==='runtime'&&<><div className="runtime-local-folder"><h4>這台 Mac 的工作目錄</h4><p>選擇 Agent 將使用的本機資料夾。這不是朋友電腦上的路徑。</p><div className="inline-field"><input aria-label="Mac 工作目錄" value={localCwd} onChange={event=>setLocalCwd(event.target.value)} placeholder="選擇這台 Mac 的資料夾" disabled={!!working||connecting}/><button className="secondary compact" disabled={!!working||connecting} onClick={()=>safe(async()=>{if(!api().runtime?.chooseLocalDirectory){notify('請重新啟動更新後的 App。');return;}const chosen=await api().runtime.chooseLocalDirectory();if(chosen)setLocalCwd(chosen);})}><Glyph name="folder" size={16}/>選擇</button></div></div>{runtime&&<div className="runtime-model-settings"><h4>Runtime 提供的模型</h4><select aria-label="Runtime 模型" value={runtimeModel} disabled={!!working||!runtime.models.length} onChange={event=>{setRuntimeModel(event.target.value);setRuntimeEffort(runtime.models.find(model=>model.id===event.target.value)?.defaultReasoningEffort||'');}}>{!runtime.models.length&&<option value="">尚未取得模型清單</option>}{runtime.models.map(model=><option key={model.id} value={model.id}>{model.displayName||model.id}</option>)}</select>{reasoningOptions(runtime.models.find(model=>model.id===runtimeModel)).length>0&&<label>推理程度<select aria-label="推理程度" value={runtimeEffort} disabled={!!working||connecting} onChange={event=>setRuntimeEffort(event.target.value)}>{reasoningOptions(runtime.models.find(model=>model.id===runtimeModel)).map(effort=><option key={effort} value={effort}>{effort}</option>)}</select></label>}</div>}</>}
-      {connectionMode==='runtime'&&<div className="runtime-permissions"><h4>Mac 工具權限</h4><select aria-label="Mac 工具權限" disabled={connecting} value={permissionMode} onChange={event=>selectPermission(event.target.value as 'ask'|'project'|'full')}><option value="project">讀取專案可自動執行；操作前詢問</option><option value="ask">檔案擴充、電腦與瀏覽器操作先詢問</option><option value="full">最高權限：所有操作不逐次詢問</option></select><p>{permissionMode==='full'?'Agent 可直接執行命令、修改檔案及操作應用程式；macOS 系統權限仍須開啟。設定會保留，新的工作立即套用。':'檔案擴充、點擊與瀏覽器操作依此設定詢問。命令由 Codex 權限規則核准，部分唯讀命令可自動執行。'}</p></div>}<div className="settings-tip">{connectionMode==='runtime'?'帳號與方案由 Runtime 實際回報。登入憑證留在朋友的電腦；未確認本機工具可用時，不會退回朋友電腦執行工作。':'首次登入請在遠端終端機完成。SSH 連線資料與 Agent 帳號分開管理。'}</div></>}</>}
+      {connectionMode==='runtime'&&<div className="runtime-permissions"><h4>Mac 工具權限</h4><select aria-label="Mac 工具權限" disabled={connecting} value={permissionMode} onChange={event=>selectPermission(event.target.value as 'ask'|'project'|'full')}><option value="project">讀取專案可自動執行；操作前詢問</option><option value="ask">檔案擴充、電腦與瀏覽器操作先詢問</option><option value="full">最高權限：所有操作不逐次詢問</option></select><p>{permissionMode==='full'?'最高權限會允許工作資料夾以外的檔案、命令與應用程式操作，不逐次詢問。需要管理員權限的讀取可由 macOS 系統視窗授權；完整磁碟存取、SIP 與磁碟本身權限仍適用。設定會保留並立即套用。':'檔案擴充、點擊與瀏覽器操作依此設定詢問。命令由 Codex 權限規則核准，部分唯讀命令可自動執行。'}</p></div>}<div className="settings-tip">{connectionMode==='runtime'?'帳號與方案由 Runtime 實際回報。登入憑證留在朋友的電腦；未確認本機工具可用時，不會退回朋友電腦執行工作。':'首次登入請在遠端終端機完成。SSH 連線資料與 Agent 帳號分開管理。'}</div></>}</>}
       {settings==='data'&&<><h3>資料與儲存</h3><div className="setting-row"><div><b>對話紀錄</b><p>{chats.length} 段對話 · {projects.length} 個專案，儲存於這台 Mac。</p></div><button className="secondary compact" onClick={exportChats}>匯出資料</button></div><div className="setting-row"><div><b>封存的對話</b><p>{chats.filter(chat=>chat.archived).length} 段已封存的對話。</p></div><button className="secondary compact" onClick={()=>{setHistoryMode('archived');setPage('history');setSettings(null);}}>管理</button></div><div className="setting-row"><div><b>檔案庫</b><p>{library.length} 個檔案。移除項目不會刪除原始檔。</p></div><button className="secondary compact" onClick={()=>{setPage('library');setSettings(null);}}>開啟</button></div><div className="settings-tip"><Glyph name="shield" size={20}/><p>對話內容保存在本機。傳送訊息時，內容與所選附件資訊會交給 Runtime 與模型服務。Codex 模式的工作檔案保留在 Mac；舊版 SSH 模式會上傳附件。</p></div></>}
       {settings==='shortcuts'&&<><h3>鍵盤快捷鍵</h3>{[['新對話','⇧ ⌘ N'],['搜尋對話','⌘ K'],['展開／收合側邊欄','⌘ B'],['開啟設定','⌘ ,'],['傳送訊息','Enter'],['訊息換行','Shift + Enter'],['關閉對話框','Esc']].map(([label,key])=><div className="setting-row" key={label}><b>{label}</b><kbd>{key}</kbd></div>)}</>}
       {settings==='advanced'&&<><h3>進階工具</h3><p className="settings-intro">遠端登入回呼、本機網路與執行環境檢查。</p><SettingsView session={session} doctor={doctor} addresses={addresses}/><button className="secondary" onClick={()=>safe(refreshLocal)}><Glyph name="refresh" size={16}/>重新檢查環境</button></>}

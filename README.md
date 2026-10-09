@@ -1,15 +1,27 @@
 # AgentBridge Studio
-0.5.5 修正停止後無法接續及自動另開對話，並改善登入重新偵測、發送狀態與重複請求。既有 SSH、額度與長對話修正保留。實測界線見 [發布驗收](docs/RELEASE_ACCEPTANCE.md)。
+0.5.7 修正最高權限的資料夾限制、未送出草稿遺失、模型偏好重設及雙 Agent 另開對話。保留先前停止接續、SSH、額度与長對話修正；實測界線見 [發布前檢查](docs/PUBLISH_READINESS.md)。
 
 [繁體中文](README.md) · [English](README_EN.md)
 
 在 Mac 上與 Codex、Claude Code 對話，讓 Agent 處理**這台 Mac** 的檔案、命令、應用程式與網頁。模型 Runtime 與登入保留在你選擇的遠端主機，工作工具在本機執行。
 
-**版本 0.5.5 · Apple Silicon · macOS 13 或更新版本**
+**版本 0.5.6 · Apple Silicon · macOS 13 或更新版本**
 
 > 這是遠端 Runtime 用戶端。安裝後不用另外下載 Node.js、Python、Homebrew、Codex Mac 執行器、Computer Use MCP 或瀏覽器；第一次使用仍須填入可連線、已登入的遠端 Runtime，並授予 macOS 所需權限。它不包含免費 AI 帳號或離線模型。
 
-## 0.5.5 穩定性修正
+## 0.5.7：可執行任務的內建工具
+
+新增容錯檔案／內容搜尋、精準文字編輯、可追蹤命令、內建 Node 執行、任務進度保存、公開網頁讀取，以及 MCP 資源／提示範本。這些核心能力包在 App 內，無須另外下載工具。Codex 與 Claude 使用相同的 Mac 工具通道；一般模式仍會依操作請求授權，最高權限模式套用既有設定。
+
+直接描述工作即可。AI 可保存任務目標、步驟及下一個動作；停止後在原對話補充要求繼續。命令輸出有上限與查詢游標，停止／回合結束／斷線會取消該通道啟動的命令。資料夾搜尋遇到無權讀取的子目錄會繼續，並回報搜尋範圍不完整。
+
+[能力與限制](docs/AGENT_CAPABILITIES.md) 區分內建功能、已接通 MCP 和選用外部依賴。GitNexus 等第三方工具不隨此 DMG 安裝；若專案明確要求，需另外接通指定工具，不能用其他搜尋冒充。遠端原生帳戶與 macOS 權限仍須設定。
+
+## 0.5.6 穩定性修正
+
+最高權限不再受工作資料夾範圍限制，檔案讀取可指定任何絕對路徑。需要 root 的唯讀操作可透過 macOS 系統視窗輸入管理員密碼；不將密碼交給模型，不讓整個 App 長期以 root 執行。完整磁碟存取、SIP 與磁碟權限仍適用。
+
+未送出的文字與附件按對話保存，切換對話、正常關閉與重新啟動後可以繼續編輯。各 Agent 的模型及推理強度保留；雙 Agent 暫停後使用同一對話與有界歷史接續。
 
 停止後可在同一個對話輸入補充要求，優先恢復原生對話；若重開 App、換設備、目錄或沒有原生識別碼，使用本機文字上下文在同一個對話接續。恢復文字包含最初目標與最近進度，最多 24,000 字元；完整本機紀錄保留，過去的工具與附件不重播。停止在初始化階段也會解除忙碌狀態。
 
@@ -40,7 +52,7 @@ flowchart TD
         Core["本機執行核心 (Local Executor)"]
         
         subgraph Tools["本機工具箱 (Local Tools)"]
-            FS["檔案與 Shell (Workspace 沙盒)"]
+            FS["檔案與 Shell (依權限模式)"]
             CU["原生 Computer Use (Swift / AXUIElement)"]
             Browser["獨立 Playwright (Chromium 隔離無痕)"]
             MCPGateway["本機 MCP 通訊網關 (127.0.0.1 Loopback)"]
@@ -112,7 +124,7 @@ npm start
 
 ### 方式二：下載打包好的 DMG 安裝檔（免編譯）
 
-到這個儲存庫的 **[Releases](https://github.com/iancheng64-cmd/AgentBridgeStudio/releases)** 頁，下載最新版 `AgentBridge-Studio-0.5.5-arm64.dmg`。
+到這個儲存庫的 **[Releases](https://github.com/iancheng64-cmd/AgentBridgeStudio/releases)** 頁，下載最新版 `AgentBridge-Studio-0.5.6-arm64.dmg`。
 
 1. 打開 DMG，將 **AgentBridge Studio** 拖到 **Applications**。
 2. 從「應用程式」開啟 App；不要直接在 DMG 中執行。

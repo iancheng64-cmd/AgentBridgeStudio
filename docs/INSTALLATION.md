@@ -1,4 +1,4 @@
-# 安裝 AgentBridge Studio 0.5.5
+# 安裝 AgentBridge Studio 0.5.6
 
 支援 Apple Silicon（M 系列）的 Mac。安裝包最低設定為 macOS 13；實際測試系統列於 RELEASE_ACCEPTANCE.md。Intel Mac 不適用本檔案。
 
@@ -52,7 +52,7 @@ HTTP MCP 為選用功能，預設僅綁定 127.0.0.1。一般 AI 任務使用獨
 
 詳細步驟：[Gateway](../gateway/README.md)、[Tunnel](networking/CLOUDFLARE_TUNNEL.md)。公開網址、遠端 AI 登入與 macOS 系統權限需要你完成，不屬於額外下載本機執行相依套件。
 
-## 0.5.5 聊天保存與長訊息
+## 0.5.6 聊天保存與長訊息
 
 聊天改為保存在 App 使用者資料夾的 `chat-history/`，一般設定仍保存在原有本機設定。首次啟動會自動遷移舊聊天，成功保存後才移除舊儲存鍵；格式異常時保留原內容並顯示錯誤。回退到 0.5.0 不會直接讀取新聊天格式，回退前請先在新版匯出對話。關閉視窗會等候最後保存；若儲存失敗，請先匯出內容。
 
@@ -77,3 +77,14 @@ Claude 額度的「更新剩餘用量」會重新偵測原生登入，再讀取�
 若朋友已登入但額度仍顯示 `NO_OAUTH`，先確認 App 的 SSH 使用者、原生 Claude 執行檔與朋友登入的環境相同。Windows 原生與 WSL 的登入分開。連線設定新增「Claude 登入設定資料夾」，可指定原生 `CLAUDE_CONFIG_DIR` 的完整路徑；留白沿用原生預設。此欄位每台設備分別保存，工作資料夾不等於登入設定目錄。更改前先中斷 Claude Runtime，再連線並更新額度；不要把 OAuth Token 傳到 Mac 或貼到對話。
 
 開啟 App 直接載入本機聊天紀錄，不必解鎖連線密碼。自動連線預設關閉，舊版開啟的設定也不會自動沿用；手動連線時若要讀取已保存的 SSH／HTTPS 憑證，macOS 仍可能要求解鎖鑰匙圈。
+
+
+## 最高權限與完整磁碟讀取
+
+在「設定 → 連線與 Agent」選擇最高權限後，App 的檔案工具不再限制於工作資料夾；工作資料夾仍是命令的預設位置。已連線的 Runtime 立即套用，之後的連線沿用此設定。
+
+macOS 系統設定 → 隱私權與安全性 → 完整磁碟存取，應授權安裝於「應用程式」的 AgentBridge Studio。這是系統設定，App 不會自動授權自己；更新後若系統仍拒絕，先完全結束 App 再重新開啟。只在實際出現 EPERM 時重新檢查此項，路徑範圍錯誤並非完整磁碟存取的證據。
+
+對需要 root 才能讀取的資料，最高權限中的檔案列出、資訊及文字讀取可要求管理員讀取，macOS 會顯示原生授權視窗。密碼只輸入系統視窗，不輸入聊天；取消則不執行該讀取。這是單次唯讀操作，不會把 App 或模型永久改為 root，也不提供管理員寫入或任意 root shell。
+
+macOS 的隱私保護、SIP、檔案 ACL、其他使用者權限及唯讀磁碟仍可能拒絕操作。不要把授權成功理解為任何受保護檔案都保證可讀或可修改。參考：[Apple SIP 說明](https://support.apple.com/en-mide/102149)、[Apple 管理員授權說明](https://developer.apple.com/library/archive/documentation/AppleScript/Conceptual/AppleScriptLangGuide/reference/ASLR_cmds.html)。

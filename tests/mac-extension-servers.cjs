@@ -42,3 +42,25 @@ test('extension stdio pagination, private environment, and child cleanup are rea
  assert.equal(result.content[0].text,'local-env-proof');const pid=result.structuredContent.pid;await host.stop();assert.throws(()=>process.kill(pid,0),{code:'ESRCH'});
  }finally{await host.stop();await fs.rm(dir,{recursive:true,force:true})}
 });
+
+test('resource-only MCP is connected without tools/list and exposes resources/templates/prompts with approval',async()=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'ab-resource-'));let allow=true;
+ const script=`require('readline').createInterface({input:process.stdin}).on('line',line=>{const m=JSON.parse(line);if(m.id===undefined)return;let result={};if(m.method==='initialize')result={capabilities:{resources:{},prompts:{}}};if(m.method==='tools/list')throw Error('resources-only must not call tools/list');if(m.method==='resources/list')result={resources:[{uri:'fixture://proof',name:'proof'}],nextCursor:'next'};if(m.method==='resources/templates/list')result={resourceTemplates:[{uriTemplate:'fixture://{id}',name:'template'}]};if(m.method==='resources/read')result={contents:[{uri:m.params.uri,text:'Resource readback'}]};if(m.method==='prompts/list')result={prompts:[{name:'review'}]};if(m.method==='prompts/get')result={messages:[{role:'user',content:{type:'text',text:'Review '+m.params.arguments.subject}}]};process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n')});`;
+ const host=new LocalToolHost({allowedRoots:[root],authorize:()=>allow,extensionServers:[{id:'resource',name:'Resource fixture',transport:'stdio',command:{command:process.execPath,args:['-e',script]}}]});
+ try{const endpoint=await host.start();const call=async(name,args)=>(await(await fetch(endpoint.url,{method:'POST',headers:{Authorization:`Bearer ${endpoint.token}`,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}})})).json()).result;
+ assert.equal(host.status().extensions[0].status,'connected');assert.equal(host.status().extensions[0].toolCount,0);
+ const resources=JSON.parse((await call('mac_mcp_resources',{serverId:'resource',action:'list'})).content[0].text);assert.equal(resources.nextCursor,'next');assert.equal(resources.resources[0].uri,'fixture://proof');
+ assert.match(JSON.stringify(await call('mac_mcp_resources',{serverId:'resource',action:'templates'})),/uriTemplate/);
+ assert.match(JSON.stringify(await call('mac_mcp_resources',{serverId:'resource',action:'read',uri:resources.resources[0].uri})),/Resource readback/);
+ assert.match(JSON.stringify(await call('mac_mcp_prompts',{serverId:'resource',action:'get',name:'review',arguments:{subject:'actual subject'}})),/actual subject/);
+ allow=false;assert.equal((await call('mac_mcp_resources',{serverId:'resource',action:'read',uri:'fixture://proof'})).isError,true);
+ }finally{await host.stop();await fs.rm(root,{recursive:true,force:true});}
+});
+
+test('HTTP MCP resources use the configured authenticated transport without leaking its header',async()=>{
+ const http=require('node:http');const server=http.createServer(async(req,res)=>{assert.equal(req.headers.authorization,'Bearer fixture-only-secret');if(req.method!=='POST'){res.writeHead(405);res.end();return;}const chunks=[];for await(const chunk of req)chunks.push(chunk);const m=JSON.parse(Buffer.concat(chunks).toString());if(m.id===undefined){res.writeHead(202);res.end();return;}const result=m.method==='initialize'?{protocolVersion:'2025-03-26',capabilities:{resources:{}},serverInfo:{name:'resources',version:'1'}}:m.method==='resources/read'?{contents:[{uri:m.params.uri,text:'HTTP resource actual readback'}]}:{resources:[{uri:'fixture://http',name:'HTTP'}]};res.setHeader('Content-Type','application/json');res.end(JSON.stringify({jsonrpc:'2.0',id:m.id,result}));});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'ab-resource-http-'));const host=new LocalToolHost({allowedRoots:[root],authorize:()=>true,extensionServers:[{id:'http-resource',name:'HTTP resource',transport:'http',url:`http://127.0.0.1:${server.address().port}/mcp`,headers:{Authorization:'Bearer fixture-only-secret'}}]});
+ try{const endpoint=await host.start();assert.equal(host.status().extensions[0].status,'connected');assert.equal(JSON.stringify(host.status()).includes('fixture-only-secret'),false);
+ const response=await(await fetch(endpoint.url,{method:'POST',headers:{Authorization:`Bearer ${endpoint.token}`,'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'mac_mcp_resources',arguments:{serverId:'http-resource',action:'read',uri:'fixture://http'}}})})).json();assert.match(JSON.stringify(response.result),/HTTP resource actual readback/);assert.notEqual(response.result.isError,true);
+ }finally{await host.stop();await fs.rm(root,{recursive:true,force:true});server.closeAllConnections();await new Promise(r=>server.close(r));}
+});
