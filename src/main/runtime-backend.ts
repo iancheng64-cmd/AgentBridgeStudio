@@ -381,13 +381,6 @@ export async function cancelCodexBackgroundTurn(runtimeId: string) {
   if (run.threadId && run.turnId) {
     try { await runtime.rpc.request("turn/interrupt", { threadId: run.threadId, turnId: run.turnId }); } catch {}
   }
-  // The background turn's promise only resolves on turn/completed. A runtime that
-  // never reports it would keep the orchestrator awaiting forever.
-  const pending = run.completion;
-  if (pending && runtime.run === run) {
-    runtime.run = undefined;
-    queueMicrotask(() => pending.resolve({ requestId: run.requestId, conversationId: run.threadId, text: [...run.messages.values()].filter(Boolean).join("\n\n"), status: "cancelled" }));
-  }
   return { cancelled: true };
 }
 
@@ -594,16 +587,6 @@ export function registerRuntimeBackend(deps: Dependencies) {
       emitForRun(runtime,deps,{type:"done",status:"cancelled",conversationId:run.threadId});
       if(runtime.run===run)runtime.run=undefined;
       run.completion?.resolve({requestId:run.requestId,conversationId:run.threadId,text:[...run.messages.values()].join("\n\n"),status:"cancelled"});
-    }
-    // A turn in flight is normally released by the turn/completed notification.
-    // Guard against a runtime that never reports it, or the composer stays locked.
-    if ((run.turnId || run.turnStarting) && runtime.run === run) {
-      setTimeout(() => {
-        if (runtime.run !== run || !run.cancelled) return;
-        emitForRun(runtime, deps, { type: "done", status: "cancelled", conversationId: run.threadId });
-        runtime.run = undefined;
-        run.completion?.resolve({ requestId: run.requestId, conversationId: run.threadId, text: [...run.messages.values()].join("\n\n"), status: "cancelled" });
-      }, 5000).unref();
     }
     return { cancelled: true };
   });
