@@ -1,6 +1,6 @@
 {
   "name": "agentbridge-studio",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "A self-contained macOS desktop client for remote Codex and Claude runtimes, with bundled local computer and browser tools.",
   "author": "AgentBridge Studio",
   "license": "MIT",
