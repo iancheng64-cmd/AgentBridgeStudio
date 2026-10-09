@@ -83,3 +83,15 @@ test('independent task checkpoints remain separate and read is allowed in read-o
  }finally{await f.cleanup();}
  const readonly=await fixture({authorize:call=>call.category==='filesystem-read'});try{assert.equal((await readonly.call('mac_task_plan',{action:'read'})).revision,0);}finally{await readonly.cleanup();}
 });
+
+test('built-in guides and runtime instructions do not hardcode external tool brand names', () => {
+  const { BUILT_IN_GUIDES, coreRuntimeInstructions } = require('../dist-main/agent-core-tools.js');
+  const branded = /\bGitNexus\b|\bComposio\b|\bWindsurf\b/;
+  for (const [topic, guide] of Object.entries(BUILT_IN_GUIDES)) {
+    assert.doesNotMatch(guide, branded, `guide "${topic}" hardcodes an external tool brand`);
+  }
+  assert.doesNotMatch(coreRuntimeInstructions, branded, 'coreRuntimeInstructions hardcodes an external tool brand');
+  // The anti-impersonation rule survives without the brand name.
+  assert.match(coreRuntimeInstructions, /live catalog/);
+  assert.match(BUILT_IN_GUIDES.coding, /mac_agent_capabilities/);
+});
