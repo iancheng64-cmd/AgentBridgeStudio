@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "claudex-computer-use": {
+      "command": "../../.build/debug/claudex-computer-use",
+      "args": [],
+      "cwd": "."
+    }
+  }
+}

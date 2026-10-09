@@ -1,0 +1,36 @@
+{
+  "name": "claudex-computer-use",
+  "version": "0.1.0-alpha",
+  "description": "Open-source background computer use for Claude and Codex on macOS.",
+  "author": {
+    "name": "OpenClaudex"
+  },
+  "license": "MIT",
+  "keywords": [
+    "computer-use",
+    "mcp",
+    "macos",
+    "desktop-control",
+    "background-automation"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Open Claudex Computer Use",
+    "shortDescription": "Control Mac apps without stealing your mouse",
+    "longDescription": "Open Claudex Computer Use is an open-source, local-first Mac computer-use engine. It packages native macOS desktop control behind MCP so Claude, Codex, and other clients can drive apps in the background.",
+    "developerName": "OpenClaudex",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Local-first",
+      "MCP"
+    ],
+    "defaultPrompt": [
+      "List the running apps I can target with Open Claudex Computer Use",
+      "Check whether Open Claudex Computer Use has the macOS permissions it needs",
+      "Click inside a target app without moving my visible cursor"
+    ],
+    "brandColor": "#0F172A",
+    "screenshots": []
+  }
+}

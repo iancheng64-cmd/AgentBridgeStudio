@@ -1,0 +1,21 @@
+.build/
+.swiftpm/
+*.xcodeproj
+DerivedData/
+.DS_Store
+Package.resolved
+test-results/
+*.log
+.claude/
+brand-assets/
+
+# Internal analysis docs (contain local paths, to be cleaned before publishing)
+docs/design-conversation.md
+docs/codex-cua-deep-analysis.md
+docs/codex-cua-trace-analysis.md
+
+# Internal reverse-engineering and local harness scripts
+scripts/batch-codex-cua.sh
+scripts/codex-cua-prompts.txt
+scripts/test-execa-spawn.mjs
+scripts/test-harness.py

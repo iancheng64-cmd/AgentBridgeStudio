@@ -1,0 +1,20 @@
+{
+  "name": "claudex-computer-use-local",
+  "interface": {
+    "displayName": "Open Claudex Computer Use Local"
+  },
+  "plugins": [
+    {
+      "name": "claudex-computer-use",
+      "source": {
+        "source": "local",
+        "path": "./plugins/claudex-computer-use"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
