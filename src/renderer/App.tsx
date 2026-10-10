@@ -146,7 +146,7 @@ function App() {
   const [templateModal,setTemplateModal]=useState(false);
   const [templates,setTemplates]=useState<{id:string;title:string;body:string}[]>(()=>read<any[]>('studio.templates',[]).filter(item=>item&&typeof item.id==='string'&&typeof item.title==='string'&&typeof item.body==='string'));
   const insertTemplate=(body:string)=>{setInput(input?`${input.trim()}\n\n${body}`:body);setTemplateModal(false);composerRef.current?.focus();};
-  const saveTemplate=(title:string,body:string)=>{const trimmed=title.trim();if(!trimmed||!body.trim()){notify('範本需要標題與內容。');return;}setTemplates(prev=>[{id:crypto.randomUUID(),title:trimmed.slice(0,60),body:body.trim()},...prev]);notify('已加入提示範本');};
+  const saveTemplate=(title:string,body:string)=>{const trimmed=title.trim();if(!trimmed||!body.trim()){notify('範本需要標題與內容。');return;}setTemplates(prev=>[{id:crypto.randomUUID(),title:trimmed.slice(0,60),body:body.trim()},...prev].slice(0,50));notify('已加入提示範本');};
   const [customInstructions,setCustomInstructions]=useState<string>(()=>read('studio.customInstructions',''));
   const [ttsEnabled,setTtsEnabled]=useState<boolean>(()=>read('studio.ttsEnabled',false));
   const [desktopNotifications,setDesktopNotifications]=useState<boolean>(()=>read('studio.desktopNotifications',false));
@@ -192,7 +192,7 @@ function App() {
   const {text:input,setText:setInput,attachments,setAttachments}=composer;
   const historyReady=useChatHistory(chats,setChats,readChats,normalizeChats,notify,()=>flushSync(()=>streamText.current?.flush()),composer.flush);
   const visibleMessages=messageWindow(current?.messages.length||0,historyEnd);
-  useEffect(()=>setHistoryEnd(null),[currentId]);
+  useEffect(()=>{setHistoryEnd(null);if(ttsActive.current){speechSynthesis.cancel();ttsActive.current=null;}},[currentId]);
   const refreshLibrary=useCallback(async()=>{ if(api()?.library) setLibrary(await api().library.list()); },[]);
   const refreshExtensions=useCallback(async()=>{
     if(!api()?.extensions) return;
@@ -591,7 +591,7 @@ function App() {
   const branchFromMessage=(chatId:string,messageId:string)=>{const chat=chats.find(item=>item.id===chatId);if(!chat)return;const created=branchChat(chat,messageId,()=>crypto.randomUUID(),Date.now());if(!created)return;setChats(prev=>[created,...prev]);setCurrentId(created.id);setPage('chat');notify(`已從訊息建立「${created.title}」，沿用先前上下文。`);};
 
   // --- A5: temporary chat ---
-  const startTemporary=()=>{const id=crypto.randomUUID();const now=Date.now();const chat:Chat={id,title:'臨時對話',messages:[],createdAt:now,updatedAt:now,agent,temporary:true};setChats(prev=>[chat,...prev]);setCurrentId(id);setPage('chat');setInput('');setAttachments([]);setChatMenu(null);};
+  const startTemporary=()=>{const id=crypto.randomUUID();const now=Date.now();const chat:Chat={id,title:'臨時對話',messages:[],createdAt:now,updatedAt:now,agent,temporary:true};setChats(prev=>[chat,...prev.filter(item=>!(item.temporary&&!item.messages.length))]);setCurrentId(id);setPage('chat');setInput('');setAttachments([]);setChatMenu(null);};
 
   // --- A10: bookmark a message ---
   const toggleBookmark=(chatId:string,messageId:string)=>{setChats(prev=>prev.map(chat=>{if(chat.id!==chatId)return chat;const set=new Set(chat.bookmarks||[]);if(set.has(messageId))set.delete(messageId);else set.add(messageId);return{...chat,bookmarks:[...set],updatedAt:Date.now()};}));};
