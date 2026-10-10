@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-interface Chat {id:string}
+interface Chat {id:string; temporary?:boolean}
 /** Coalesce streaming saves; await the final commit before the window closes. */
 export function useChatHistory<T extends Chat>(chats:T[],setChats:(value:T[])=>void,legacy:()=>T[],normalize:(values:unknown[])=>T[],notify:(text:string)=>void,beforeFlush:()=>void,flushDrafts?:()=>Promise<unknown>){
  const [ready,setReady]=useState(false),latest=useRef(chats),saved=useRef(new Map<string,T>()),chain=useRef<Promise<unknown>>(Promise.resolve()),timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);const loaded=useRef(false);latest.current=chats;
@@ -8,7 +8,7 @@ export function useChatHistory<T extends Chat>(chats:T[],setChats:(value:T[])=>v
   if(!loaded.current)return Promise.resolve();
   if(timer.current)clearTimeout(timer.current);timer.current=undefined;
   const snapshot=latest.current;
-  const operation=async()=>{const changes=snapshot.filter(chat=>saved.current.get(chat.id)!==chat);await window.agentBridge.history.save({ids:snapshot.map(chat=>chat.id),changes});saved.current=new Map(snapshot.map(chat=>[chat.id,chat]));};
+  const operation=async()=>{const changes=snapshot.filter(chat=>saved.current.get(chat.id)!==chat);const durable=snapshot.filter(chat=>!chat.temporary);if(!changes.length&&saved.current.size===durable.length)return;await window.agentBridge.history.save({ids:durable.map(chat=>chat.id),changes:changes.filter(chat=>!chat.temporary)});saved.current=new Map(durable.map(chat=>[chat.id,chat]));};
   const result=chain.current.then(operation);chain.current=result.catch(()=>{});return result;
  };
  useEffect(()=>{
