@@ -467,7 +467,7 @@ function App() {
     try{const result=await engineApi(active.agent||'codex').status(active.runtimeId);if(connectionsRef.current[active.agent||'codex']?.runtimeId!==active.runtimeId)return;applyRuntime(result,active.hostName||'Codex Runtime',active.hostKey||'');}finally{setRuntimeBusy(false);}
   };
   const cancelWork=async()=>{const active=workingRef.current;if(!active)return;if(active.transport==='orchestrator')await api().orchestrator.cancel(active.requestId);else if(active.transport==='runtime')await engineApi(active.agent||'codex').cancel(active.sessionId,active.requestId);else await api().chat.cancel(active.requestId);};
-  const interruptAndSend=async()=>{const prompt=input.trim();const files=attachments;if(!prompt&&!files.length)return;if(!workingRef.current){safe(()=>send());return;}if(!historyReady||!composer.ready||sendPending.current||importing){notify('正在讀取本機對話，請稍候。');return;}const workingChatId=workingRef.current.chatId;sendPending.current=true;try{await cancelWork();let attempts=0;while(workingRef.current&&attempts++<50){await new Promise(resolve=>setTimeout(resolve,100));}if(workingRef.current){notify('無法停止目前工作，請稍後再試。');return;}if(currentId!==workingChatId){notify('已停止工作。切換對話後請重新傳送。');return;}setInput('');setAttachments([]);await send(prompt,files);}finally{sendPending.current=false;}};
+  const interruptAndSend=async()=>{const prompt=input.trim();const files=attachments;if(!prompt&&!files.length)return;if(!workingRef.current){safe(()=>send());return;}if(!historyReady||!composer.ready||sendPending.current||importing){notify('正在讀取本機對話，請稍候。');return;}const workingChatId=workingRef.current.chatId;sendPending.current=true;try{await cancelWork();let attempts=0;while(workingRef.current&&attempts++<50){await new Promise(resolve=>setTimeout(resolve,100));}if(workingRef.current){notify('無法停止目前工作，請稍後再試。');return;}if(currentId!==workingChatId){notify('已停止工作。切換對話後請重新傳送。');return;}setInput('');setAttachments([]);await send(prompt,files,{interrupted:true});}finally{sendPending.current=false;}};
   const respondToRuntime=async(request:RuntimeRequest,decision:'accept'|'decline',answers?:Record<string,string[]>)=>{
     await engineApi(Object.values(connectionsRef.current).find(value=>value?.runtimeId===request.runtimeId)?.agent||'codex').respond({runtimeId:request.runtimeId,approvalId:request.approvalId,decision,answers});
     setRuntimeRequests(previous=>previous.filter(item=>item.approvalId!==request.approvalId));
@@ -548,10 +548,10 @@ function App() {
     }finally{setConnecting(false);}
   };
   const saveProfile=async()=>{setProfiles(await api().profiles.save({...draft,runtimePlatform}));notify('連線設定已儲存');};
-  const send=async(retryText?:string,retryAttachments?:Attachment[])=>{
+  const send=async(retryText?:string,retryAttachments?:Attachment[],options?:{interrupted?:boolean})=>{
     if(!historyReady||!composer.ready){notify('正在讀取本機對話，請稍候。');return;}
     const prompt=retryText??input.trim();const files=retryAttachments??attachments;
-    if((!prompt&&!files.length)||workingRef.current||sendPending.current||runtimeBusy||importing)return;
+    if((!prompt&&!files.length)||workingRef.current||(!options?.interrupted&&sendPending.current)||runtimeBusy||importing)return;
     sendPending.current=true;
     try{if(collabMode)await sendCollaboration(prompt,files);else await sendRuntime(prompt,files);}
     finally{sendPending.current=false;}
