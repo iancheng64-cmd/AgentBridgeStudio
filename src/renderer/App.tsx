@@ -472,7 +472,7 @@ function App() {
     await engineApi(Object.values(connectionsRef.current).find(value=>value?.runtimeId===request.runtimeId)?.agent||'codex').respond({runtimeId:request.runtimeId,approvalId:request.approvalId,decision,answers});
     setRuntimeRequests(previous=>previous.filter(item=>item.approvalId!==request.approvalId));
   };
-  const sendRuntime=async(prompt:string,files:Attachment[])=>{
+  const sendRuntime=async(prompt:string,files:Attachment[],options?:{forcedMessages?:Message[]})=>{
     const initial=runtimeRef.current;
     if(!initial||initial.status!=='connected'){setConnectionMode('runtime');setSettings('connection');notify(agent==='claude'?'請先連接朋友的 Claude Runtime。':'請先連線到朋友電腦上的 Codex Runtime。');return;}
     let active:RuntimeConnection=initial;
@@ -485,7 +485,7 @@ function App() {
     }
     if(!active.capabilities.localTools){setConnectionMode('runtime');setSettings('connection');notify('Mac 工具通道尚未就緒，暫不開始對話。朋友電腦不會代替 Mac 執行工具。');return;}
     if(!localCwd.trim()){setConnectionMode('runtime');setSettings('connection');notify('請先選擇這台 Mac 的工作資料夾。');return;}
-    const prior=current?.agent===agent?current:undefined;
+    const prior=(options?.forcedMessages?{...current,messages:options.forcedMessages}:current?.agent===agent?current:undefined)||undefined;
     const nativeResume=!!prior&&(agent==='claude'||(!!prior.executorEnvironmentId&&prior.executorEnvironmentId===active.executorEnvironment?.environmentId))&&prior.transport==='runtime'&&prior.hostKey===active.hostKey&&prior.localCwd===localCwd&&!prior.recoveryNeeded&&!!prior.remoteId;
     const restoreContext=!!prior&&!nativeResume;
     if(restoreContext)notify('已在同一段對話接續，使用本機文字歷史補上上下文。');
@@ -548,12 +548,12 @@ function App() {
     }finally{setConnecting(false);}
   };
   const saveProfile=async()=>{setProfiles(await api().profiles.save({...draft,runtimePlatform}));notify('連線設定已儲存');};
-  const send=async(retryText?:string,retryAttachments?:Attachment[],options?:{interrupted?:boolean})=>{
+  const send=async(retryText?:string,retryAttachments?:Attachment[],options?:{interrupted?:boolean;forcedMessages?:Message[]})=>{
     if(!historyReady||!composer.ready){notify('正在讀取本機對話，請稍候。');return;}
     const prompt=retryText??input.trim();const files=retryAttachments??attachments;
     if((!prompt&&!files.length)||workingRef.current||(!options?.interrupted&&sendPending.current)||runtimeBusy||importing)return;
     sendPending.current=true;
-    try{if(collabMode)await sendCollaboration(prompt,files);else await sendRuntime(prompt,files);}
+    try{if(collabMode)await sendCollaboration(prompt,files);else await sendRuntime(prompt,files,options);}
     finally{sendPending.current=false;}
   };
   useEffect(()=>{
@@ -585,7 +585,7 @@ function App() {
   const searchHitMessageId=chatSearch&&chatSearchHits.length?chatSearchHits[Math.min(chatSearchIndex,chatSearchHits.length-1)].messageId:null;  const jumpToMessage=(chatId:string,messageId:string)=>{setChatSearch(null);if(currentId!==chatId)setCurrentId(chatId);setHistoryEnd(null);requestAnimationFrame(()=>document.getElementById(`message-${messageId}`)?.scrollIntoView({behavior:reduceMotion?'instant':'smooth',block:'center'}));};
 
   // --- A1: edit a sent message and resend ---
-  const startEditMessage=(chatId:string,messageId:string)=>{const chat=chats.find(item=>item.id===chatId);const message=chat?.messages.find(item=>item.id===messageId);if(!message||message.role!=='user')return;setEditMessage({chatId,messageId,text:message.text});};  const commitEditMessage=async()=>{if(!editMessage||!current)return;const{chatId,messageId,text}=editMessage;const trimmed=text.trim();if(!trimmed){notify('訊息內容不能為空。');return;}const chat=chats.find(item=>item.id===chatId);if(!chat)return;const index=chat.messages.findIndex(message=>message.id===messageId);if(index===-1)return;setEditMessage(null);const base=chat.messages.slice(0,index+1).map((message,offset)=>offset===index?{...message,text:trimmed}:message);setChats(prev=>prev.map(item=>item.id===chatId?{...item,recoveryNeeded:true,updatedAt:Date.now(),messages:base}:item));setInput('');setAttachments([]);await send(trimmed);};
+  const startEditMessage=(chatId:string,messageId:string)=>{const chat=chats.find(item=>item.id===chatId);const message=chat?.messages.find(item=>item.id===messageId);if(!message||message.role!=='user')return;setEditMessage({chatId,messageId,text:message.text});};  const commitEditMessage=async()=>{if(!editMessage||!current)return;const{chatId,messageId,text}=editMessage;const trimmed=text.trim();if(!trimmed){notify('訊息內容不能為空。');return;}const chat=chats.find(item=>item.id===chatId);if(!chat)return;const index=chat.messages.findIndex(message=>message.id===messageId);if(index===-1)return;setEditMessage(null);const base=chat.messages.slice(0,index+1).map((message,offset)=>offset===index?{...message,text:trimmed}:message);setChats(prev=>prev.map(item=>item.id===chatId?{...item,recoveryNeeded:true,updatedAt:Date.now(),messages:base}:item));setInput('');setAttachments([]);await send(trimmed,[],{forcedMessages:base});};
 
   // --- A4: branch a conversation from a message ---
   const branchFromMessage=(chatId:string,messageId:string)=>{const chat=chats.find(item=>item.id===chatId);if(!chat)return;const created=branchChat(chat,messageId,()=>crypto.randomUUID(),Date.now());if(!created)return;setChats(prev=>[created,...prev]);setCurrentId(created.id);setPage('chat');notify(`已從訊息建立「${created.title}」，沿用先前上下文。`);};
