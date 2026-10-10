@@ -176,6 +176,10 @@ export function registerClaudeLocalBackend(deps: ClaudeLocalDependencies) {
     if (input.localCwd && await fs.realpath(input.localCwd) !== runtime.cwd) throw new Error("變更 Mac 工作目錄後請重新連線。");
     const attachments = ids.length ? await deps.libraryEntries!(ids) : [];
     const blocks = await runtimeInput(input.prompt.trim() || "請查看並處理附加的檔案。", attachments);
+    if (typeof input.customInstructions === "string" && input.customInstructions.trim()) {
+      blocks.push({ type: "text", text: `使用者自訂指令（適用於本次對話）：\n${input.customInstructions.trim()}` });
+    }
+    // ponytail: cli.send takes an explicit subset — spreading the whole input would smuggle unknown IPC keys into the CLI args
     const content = blocks.map(block => {
       if (block.type === "text") return { type: "text", text: block.text };
       const match = /^data:(image\/(?:png|jpeg|gif|webp));base64,(.*)$/.exec(block.url);
@@ -183,7 +187,7 @@ export function registerClaudeLocalBackend(deps: ClaudeLocalDependencies) {
       return { type: "image", source: { type: "base64", media_type: match[1], data: match[2] } };
     });
     if (runtime.closed || runtime.cli.busy) throw new Error("Claude 已中斷或仍在處理上一則訊息。");
-    return await runtime.cli.send({ ...input, content });
+    return await runtime.cli.send({ prompt: input.prompt, requestId: input.requestId, conversationId: input.conversationId, model: input.model, effort: input.effort, autoCompactPercent: input.autoCompactPercent, content, systemPrompt: input.customInstructions });
     }finally{runtime.sendPending=false;}
   });
   ipcMain.handle("claude:cancel", async (_event, id: string, requestId?: string) => {

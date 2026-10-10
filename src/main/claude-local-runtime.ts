@@ -167,7 +167,7 @@ export class ClaudeLocalRuntime {
     try { this.initialized = await protocol.request("initialize", {}, 30_000); }
     catch (error) { await this.closeProcess(); throw error; }
   }
-  async send(input: { requestId?: string; prompt: string; conversationId?: string; model?: string; effort?: string; autoCompactPercent?:number; content?: unknown[] }) {
+  async send(input: { requestId?: string; prompt: string; conversationId?: string; model?: string; effort?: string; autoCompactPercent?:number; content?: unknown[]; systemPrompt?: string }) {
     if (this.stopped) throw new Error("Claude 本機連線尚未就緒。");
     if (this.run) throw new Error("Claude 還在處理上一則訊息。");
     if (!input.prompt?.trim() && !input.content?.length) throw new Error("請輸入訊息或加入附件。");
@@ -187,7 +187,9 @@ export class ClaudeLocalRuntime {
       }
       if (run.cancelled || this.run !== run) { this.finish("cancelled"); return { requestId: run.requestId }; }
       this.emit({ type: "activity", text: "Claude Code 正在這台 Mac 處理訊息" });
-      this.protocol!.user(input.content || [{ type: "text", text: input.prompt }], input.conversationId);
+      const content = input.content ? [...input.content] : [{ type: "text", text: input.prompt }];
+      if (input.systemPrompt?.trim()) content.unshift({ type: "text", text: `使用者自訂指令（適用於本次對話）：\n${input.systemPrompt.trim()}` });
+      this.protocol!.user(content, input.conversationId);
       return { requestId: run.requestId };
     } catch (error) { if (this.run === run) this.finish("error"); throw error; }
   }

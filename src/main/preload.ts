@@ -174,7 +174,9 @@ contextBridge.exposeInMainWorld("agentBridge", {
   },
   system: {
     openExternal: (url: string) => ipcRenderer.invoke("system:openExternal", url),
-    reveal: (targetPath: string) => ipcRenderer.invoke("system:reveal", targetPath)
+    reveal: (targetPath: string) => ipcRenderer.invoke("system:reveal", targetPath),
+    openWindow: () => ipcRenderer.invoke("system:openWindow"),
+    notify: (text: string) => ipcRenderer.invoke("system:notify", text)
   },
   onToast: (callback: (payload: unknown) => void) => {
     const handler = (_event: unknown, payload: unknown) => callback(payload);

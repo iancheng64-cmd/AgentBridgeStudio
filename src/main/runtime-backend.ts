@@ -527,6 +527,9 @@ export function registerRuntimeBackend(deps: Dependencies) {
     if (attachmentIds.length && !deps.libraryEntries) throw new Error("檔案庫尚未就緒。");
     const attachments = attachmentIds.length ? await deps.libraryEntries!(attachmentIds) : [];
     const turnInput = await runtimeInput(input.prompt.trim() || "請查看並處理附加的檔案。", attachments);
+    if (typeof input.customInstructions === "string" && input.customInstructions.trim()) {
+      turnInput.push({ type: "text", text: `使用者自訂指令（適用於本次對話）：\n${input.customInstructions.trim()}`, text_elements: [] });
+    }
     const localCwd = await fs.promises.realpath(input.localCwd || runtime.localCwd);
     if (!(await fs.promises.stat(localCwd)).isDirectory()) throw new Error("Mac 工作目錄必須是資料夾。");
     if (localCwd !== runtime.localCwd) throw new Error("變更 Mac 工作目錄後請重新連線，以同步檔案工具權限。");

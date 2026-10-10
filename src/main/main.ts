@@ -129,6 +129,20 @@ app.on("second-instance", () => {
   mainWindow.show();
   mainWindow.focus();
 });
+ipcMain.handle("system:openWindow", async () => {
+  // ponytail: a real second window shares the same renderer; conversation state stays per-window
+  // because chats live in localStorage keyed per origin — concurrent windows would race on save.
+  // Guard: refuse while another window is already open to keep the history flush protocol single-writer.
+  if (BrowserWindow.getAllWindows().length > 1) throw new Error("已開啟多視窗；請先關閉其他視窗再開新的。");
+  await createWindow();
+});
+ipcMain.handle("system:notify", async (_event, text: string) => {
+  if (typeof text !== "string" || !text.trim()) return;
+  // ponytail: macOS Notification requires a bundle id; falls back to dock bounce in dev
+  const { Notification } = await import("electron");
+  if (Notification.isSupported()) { const note = new Notification({ title: "AgentBridge Studio", body: text.slice(0, 200) }); void note.show(); }
+  else app.dock?.bounce();
+});
 
 function appDataPath(...parts: string[]) {
   return path.join(app.getPath("userData"), ...parts);

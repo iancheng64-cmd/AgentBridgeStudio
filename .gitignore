@@ -35,3 +35,5 @@ docs/CLEANUP_*.json
 gateway/config.json
 gateway/state.json
 relay-devices.json
+tests/.export-markdown.compiled.cjs
+tests/.chat-utilities.compiled.mjs
