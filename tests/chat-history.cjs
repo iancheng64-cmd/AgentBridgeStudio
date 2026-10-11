@@ -16,3 +16,15 @@ test('queued saves commit in order and corrupted history is never overwritten',a
  await fs.writeFile(path.join(f.root,'index.json'),'broken');await assert.rejects(f.store.load());await assert.rejects(f.store.save({ids:[],changes:[]}));assert.equal(await fs.readFile(path.join(f.root,'index.json'),'utf8'),'broken');
  }finally{await f.close();}
 });
+test('independent window saves merge indices and stale edits cannot overwrite or delete newer content',async()=>{
+ const f=await fixture();try{
+ const a={id:'a',title:'A',messages:[]},b={id:'b',title:'B',messages:[]};
+ await Promise.all([f.store.save({ids:['a'],changes:[a],removedIds:[],expectedRevisions:{}}),f.store.save({ids:['b'],changes:[b],removedIds:[],expectedRevisions:{}})]);
+ assert.deepEqual(new Set((await f.store.load()).map(c=>c.id)),new Set(['a','b']));
+ await f.store.save({ids:['a'],changes:[{...a,title:'new'}],removedIds:[],expectedRevisions:{a:1}});
+ await assert.rejects(f.store.save({ids:['a','b'],changes:[{...a,title:'stale'}],removedIds:[],expectedRevisions:{a:1,b:1}}),/另一個視窗/);
+ await assert.rejects(f.store.save({ids:['b'],changes:[],removedIds:['a'],expectedRevisions:{a:1}}),/另一個視窗/);
+ assert.equal((await f.store.load()).find(c=>c.id==='a').title,'new');
+ await f.store.save({ids:['a'],changes:[],removedIds:['b'],expectedRevisions:{b:1}});assert.deepEqual((await f.store.load()).map(c=>c.id),['a']);
+ }finally{await f.close();}
+});

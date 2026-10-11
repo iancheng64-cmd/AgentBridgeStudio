@@ -19,15 +19,26 @@ export class ChatHistoryStore {
   const chats:StoredChat[]=[];for(const id of ids){const chat=JSON.parse(await fs.readFile(this.file(id),'utf8'));if(!validChat(chat)||chat.id!==id)throw new Error('對話檔案格式錯誤，原始檔案已保留。');chats.push(chat);}return chats;
  }
  load(){return this.pending.then(()=>this.read());}
- save(input:{ids:string[];changes:StoredChat[]}){
+ save(input:{ids:string[];changes:StoredChat[];removedIds?:string[];expectedRevisions?:Record<string,number>}){
   const run=async()=>{
    if(!input||!Array.isArray(input.ids)||input.ids.some(id=>typeof id!=='string'||!id||id.length>200)||new Set(input.ids).size!==input.ids.length||!Array.isArray(input.changes)||input.changes.some(chat=>!validChat(chat)||!input.ids.includes(chat.id)))throw new Error('對話儲存格式錯誤。');
    const existing=await this.readIndex();const known=new Set(existing||[]);for(const chat of input.changes)known.add(chat.id);if(input.ids.some(id=>!known.has(id)))throw new Error('缺少對話內容，未覆寫原有索引。');
+   const merging=input.removedIds!==undefined;
+   if(merging&&(!Array.isArray(input.removedIds)||input.removedIds.some(id=>typeof id!=='string'||!id||id.length>200||input.ids.includes(id))))throw new Error('對話刪除格式錯誤。');
+   const removedIds=merging?input.removedIds!:(existing||[]).filter(id=>!input.ids.includes(id));
+   const ids=merging?[...input.ids,...(existing||[]).filter(id=>!input.ids.includes(id)&&!removedIds.includes(id))]:input.ids;
+   const changes:StoredChat[]=[];
+   for(const id of [...input.changes.map(chat=>chat.id),...removedIds]){
+    const current=existing?.includes(id)?JSON.parse(await fs.readFile(this.file(id),'utf8')):undefined;
+    const revision=Number(current?._revision)||0;
+    if(input.expectedRevisions&&revision!==(input.expectedRevisions[id]||0))throw new Error('另一個視窗已更新這段對話，已保留其內容；請重新開啟對話後再操作。');
+    const changed=input.changes.find(chat=>chat.id===id);if(changed)changes.push({...changed,_revision:revision+1});
+   }
    await fs.mkdir(this.directory,{recursive:true,mode:0o700});
-   for(const chat of input.changes)await this.atomic(this.file(chat.id),chat);
-   await this.atomic(path.join(this.directory,'index.json'),input.ids);
-   for(const id of existing||[])if(!input.ids.includes(id))await fs.rm(this.file(id),{force:true});
-   return {saved:true};
+   for(const chat of changes)await this.atomic(this.file(chat.id),chat);
+   await this.atomic(path.join(this.directory,'index.json'),ids);
+   for(const id of removedIds)await fs.rm(this.file(id),{force:true});
+   return {saved:true,changes,removedIds};
   };
   const result=this.pending.then(run);this.pending=result.catch(()=>{});return result;
  }

@@ -1,3 +1,4 @@
+import {TaskRuntimePool} from './task-runtime-pool';
 import {connectNetwork} from './connection-network';
 import {runtimeFailure} from './runtime-errors';
 import { rateLimitSummary, mergeRateLimitSummary, tokenCount, tokenDelta, type TokenCount } from "./runtime-usage";
@@ -44,6 +45,9 @@ interface Runtime {
   threadContextTokens: Map<string, number>;
   compactingThreads: Set<string>;
 }
+let taskPool:TaskRuntimePool<any>;
+export const acquireCodexTask=(rootId:string,taskId:string,requestId:string)=>taskPool.acquire(rootId,taskId,requestId);
+export const releaseCodexTask=(id:string,requestId:string)=>taskPool.release(id,requestId);
 const runtimes = new Map<string, Runtime>();
 const usageByThread=new Map<string,TokenCount>();
 const quotaByRuntime=new Map<string,ReturnType<typeof rateLimitSummary>>();
@@ -392,6 +396,10 @@ export async function cancelCodexBackgroundTurn(runtimeId: string) {
 }
 
 export function registerRuntimeBackend(deps: Dependencies) {
+  const pool=new TaskRuntimePool<any>(id=>{const runtime=runtimes.get(id);if(runtime)closeRuntime(runtime,deps);});
+  taskPool=pool;
+  const emit=deps.emit;
+  deps={...deps,emit:(channel,payload:any)=>{if(payload.type==='done')pool.release(payload.runtimeId,payload.requestId);if(payload.type==='closed')pool.forget(payload.runtimeId);emit(channel,payload);}};
   const getRuntime = (id: string) => { const runtime = runtimes.get(id); if (!runtime || runtime.closed) throw new Error("請先連線至 Codex Runtime。"); return runtime; };
   ipcMain.handle("runtime:chooseLocalDirectory", async () => {
     const options = { title: "選擇這台 Mac 的工作資料夾", properties: ["openDirectory", "createDirectory"] as Array<"openDirectory" | "createDirectory"> };
@@ -484,8 +492,18 @@ export function registerRuntimeBackend(deps: Dependencies) {
       return current.snapshot;
     } catch (error) { rpc?.close(); host?.stop(); executor?.stop(); toolForward?.stop(); await toolHost?.stop(); conn.end(); if(input.profile.networkMode!=='direct'&&input.profile.networkMode!=='relay'&&connected.transport==='tailscale-ssh'&&input.profile.relayUrl&&/timeout|timed out|中斷|結束|handshake/i.test(String(initializationFailure||error)))return connectRuntime(_event,{...input,profile:{...input.profile,networkMode:'relay'}}); if (initializationFailure) throw new Error(initializationFailure); throw error; }
   };
-  ipcMain.handle("runtime:connect",connectRuntime);
-  ipcMain.handle("runtime:disconnect", (_event, id: string) => { const runtime = runtimes.get(id); if (runtime) closeRuntime(runtime, deps); });
+  ipcMain.handle("runtime:connect",async(event,input:ConnectInput)=>{
+    const result=await connectRuntime(event,input);
+    if(result.runtimeId)pool.register(result,()=>connectRuntime(event,{...input,permissionMode:runtimes.get(result.runtimeId)?.permissionMode||input.permissionMode}));
+    if(result.runtimeId)event.sender?.once('destroyed',()=>{void pool.disconnect(result.runtimeId);});
+    return result;
+  });
+  ipcMain.handle('runtime:acquireTask',async(_event,input:any)=>{
+    const leased=await pool.acquire(input.runtimeId,input.taskId,input.requestId);
+    return getRuntime(leased.runtimeId).snapshot;
+  });
+  ipcMain.handle('runtime:releaseTask',(_event,id:string,requestId:string)=>{if(!runtimes.get(id)?.run)pool.release(id,requestId);});
+  ipcMain.handle("runtime:disconnect", async (_event, id: string) => { await pool.disconnect(id);const runtime = runtimes.get(id); if (runtime) closeRuntime(runtime, deps); });
   ipcMain.handle('runtime:permission',(_event,id:string,value:unknown)=>{
     const runtime=getRuntime(id),mode=permissionMode(value);
     if(runtime.run&&runtime.permissionMode==='full'&&mode!=='full')throw new Error('請先停止目前工作，再降低操作權限。');

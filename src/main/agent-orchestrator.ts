@@ -1,14 +1,15 @@
 import { ipcMain } from "electron";
 import { randomUUID } from "node:crypto";
 import { agentRelayHub, type AgentRelayRole } from "./agent-relay";
-import { runCodexBackgroundTurn, cancelCodexBackgroundTurn } from "./runtime-backend";
-import { runClaudeBackgroundTurn, cancelClaudeBackgroundTurn } from "./claude-local-backend";
+import { runCodexBackgroundTurn, cancelCodexBackgroundTurn, acquireCodexTask, releaseCodexTask } from "./runtime-backend";
+import { runClaudeBackgroundTurn, cancelClaudeBackgroundTurn, acquireClaudeTask, releaseClaudeTask } from "./claude-local-backend";
 
 interface OrchestratorDependencies {
   emit(channel: string, payload: unknown): void;
 }
 
 interface OrchestratorInput {
+  requestId?:string;
   codexRuntimeId: string;
   claudeRuntimeId: string;
   topic: string;
@@ -22,6 +23,8 @@ interface OrchestratorInput {
 
 interface OrchestratorRun {
   id: string;
+  leasedCodex?:string;
+  leasedClaude?:string;
   relayConversationId: string;
   input: Required<Pick<OrchestratorInput, "codexRuntimeId" | "claudeRuntimeId" | "topic">> & Omit<OrchestratorInput, "codexRuntimeId" | "claudeRuntimeId" | "topic"> & { rounds: number; leadAgent: AgentRelayRole };
   cancelled: boolean;
@@ -137,6 +140,14 @@ async function execute(run: OrchestratorRun, deps: OrchestratorDependencies) {
   let lastByLead = "";
   let lastByPeer = "";
   try {
+    const leases=await Promise.allSettled([
+      acquireCodexTask(run.input.codexRuntimeId,run.id,run.id),
+      acquireClaudeTask(run.input.claudeRuntimeId,run.id,run.id)
+    ]);
+    if(leases[0].status==='fulfilled'){run.leasedCodex=leases[0].value.runtimeId;run.input.codexRuntimeId=leases[0].value.runtimeId;}
+    if(leases[1].status==='fulfilled'){run.leasedClaude=leases[1].value.runtimeId;run.input.claudeRuntimeId=leases[1].value.runtimeId;}
+    for(const lease of leases)if(lease.status==='rejected')throw lease.reason;
+    checkCancelled(run);
     emit(deps, run, { type: "started", topic: run.input.topic, rounds: run.input.rounds, leadAgent: lead, modelCalls: run.input.rounds * 2 + 1 });
     for (let round = 1; round <= run.input.rounds; round++) {
       checkCancelled(run);
@@ -167,6 +178,8 @@ async function execute(run: OrchestratorRun, deps: OrchestratorDependencies) {
     emit(deps, run, { type: "done", status: cancelled ? "cancelled" : "error" });
   } finally {
     run.activeAgent = undefined;
+    if(run.leasedCodex)releaseCodexTask(run.leasedCodex,run.id);
+    if(run.leasedClaude)releaseClaudeTask(run.leasedClaude,run.id);
     runs.delete(run.id);
   }
 }
@@ -179,7 +192,8 @@ export function registerAgentOrchestrator(deps: OrchestratorDependencies) {
     const rounds = raw.rounds === undefined ? 3 : raw.rounds;
     if (!Number.isInteger(rounds) || rounds < 1 || rounds > MAX_ROUNDS) throw new Error(`討論輪數必須介於 1 到 ${MAX_ROUNDS} 輪。`);
     const leadAgent: AgentRelayRole = raw.leadAgent === "claude" ? "claude" : "codex";
-    const id = randomUUID();
+    const id = raw.requestId?text(raw.requestId,'Request ID',128):randomUUID();
+    if(runs.has(id))throw new Error('這個討論已在執行。');
     const relay = agentRelayHub.create(leadAgent, topic.slice(0, 500));
     const run: OrchestratorRun = {
       id,

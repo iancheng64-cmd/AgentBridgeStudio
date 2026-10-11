@@ -130,10 +130,6 @@ app.on("second-instance", () => {
   mainWindow.focus();
 });
 ipcMain.handle("system:openWindow", async () => {
-  // ponytail: a real second window shares the same renderer; conversation state stays per-window
-  // because chats live in localStorage keyed per origin — concurrent windows would race on save.
-  // Guard: refuse while another window is already open to keep the history flush protocol single-writer.
-  if (BrowserWindow.getAllWindows().length > 1) throw new Error("已開啟多視窗；請先關閉其他視窗再開新的。");
   await createWindow();
 });
 ipcMain.handle("system:notify", async (_event, text: string) => {
@@ -250,7 +246,7 @@ function networkAddresses() {
   return result.sort((a, b) => (a.kind === "tailscale" ? -1 : b.kind === "tailscale" ? 1 : 0));
 }
 function emit(channel: string, payload: unknown) {
-  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(channel, payload);
+  for(const window of BrowserWindow.getAllWindows())if(!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send(channel,payload);
 }
 
 function transferSnapshot(task: TransferTask) {
@@ -705,22 +701,28 @@ ipcMain.handle('history:loadDrafts',()=>composerDrafts.load());
 ipcMain.handle('history:saveDrafts',(_event,input)=>composerDrafts.save(input));
 const chatHistory=new ChatHistoryStore(appDataPath('chat-history'));
 ipcMain.handle('history:load',()=>chatHistory.load());
-ipcMain.handle('history:save',(_event,input)=>chatHistory.save(input));
-let historyCloseAllowed=false,historyFlush:Promise<boolean>|null=null;
-async function flushHistoryBeforeClose():Promise<boolean>{
-  if(!mainWindow||mainWindow.isDestroyed())return true;
-  if(historyFlush)return historyFlush;
-  const window=mainWindow,id=randomUUID();
-  historyFlush=new Promise<boolean>(resolve=>{
-    const finish=(ok:boolean)=>{clearTimeout(timer);ipcMain.removeListener('history:flushed',ack);historyFlush=null;if(!ok)emit('toast',{message:'對話尚未儲存完成，請稍後再關閉或先匯出。'});resolve(ok);};
+ipcMain.handle('history:save',async(event,input)=>{
+  const result=await chatHistory.save(input);
+  for(const window of BrowserWindow.getAllWindows())if(window.webContents.id!==event.sender.id&&!window.webContents.isDestroyed())window.webContents.send('history:changed',result);
+  return result;
+});
+const historyCloseAllowed=new Set<number>(),historyFlushes=new Map<number,Promise<boolean>>();
+async function flushHistoryBeforeClose(window:BrowserWindow):Promise<boolean>{
+  if(window.isDestroyed())return true;
+  const pending=historyFlushes.get(window.id);if(pending)return pending;
+  const id=randomUUID();
+  const flush=new Promise<boolean>(resolve=>{
+    const finish=(ok:boolean)=>{clearTimeout(timer);ipcMain.removeListener('history:flushed',ack);historyFlushes.delete(window.id);if(!ok)window.webContents.send('toast',{message:'對話尚未儲存完成，請稍後再關閉或先匯出。'});resolve(ok);};
     const ack=(event:Electron.IpcMainEvent,replyId:string,ok:boolean)=>{if(event.sender.id===window.webContents.id&&replyId===id)finish(ok===true);};
     const timer=setTimeout(()=>finish(false),5000);ipcMain.on('history:flushed',ack);window.webContents.send('history:flush',id);
-  });return historyFlush;
+  });historyFlushes.set(window.id,flush);return flush;
 }
-app.on('before-quit',event=>{if(!historyCloseAllowed&&mainWindow){event.preventDefault();void flushHistoryBeforeClose().then(ok=>{if(ok){historyCloseAllowed=true;app.quit();}});}});
+app.on('before-quit',event=>{
+ const windows=BrowserWindow.getAllWindows().filter(window=>!historyCloseAllowed.has(window.id));if(!windows.length)return;
+ event.preventDefault();void Promise.all(windows.map(window=>flushHistoryBeforeClose(window))).then(results=>{if(results.every(Boolean)){for(const window of windows)historyCloseAllowed.add(window.id);app.quit();}});
+});
 async function createWindow() {
-  historyCloseAllowed=false;
-  mainWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     width: 1440,
     height: 900,
     minWidth: 720,
@@ -736,13 +738,12 @@ async function createWindow() {
       sandbox: false
     }
   });
-  mainWindow.on("close",event=>{if(historyCloseAllowed)return;event.preventDefault();void flushHistoryBeforeClose().then(ok=>{if(ok){historyCloseAllowed=true;mainWindow?.close();}});});
-  mainWindow.on("closed", () => { mainWindow = null; });
-  if (process.env.AGENTBRIDGE_DEV_URL) {
-    await mainWindow.loadURL(process.env.AGENTBRIDGE_DEV_URL);
-  } else {
-    await mainWindow.loadFile(path.join(__dirname, "../dist-renderer/index.html"));
-  }
+  mainWindow=window;
+  window.on("focus",()=>{mainWindow=window;});
+  window.on("close",event=>{if(historyCloseAllowed.has(window.id))return;event.preventDefault();void flushHistoryBeforeClose(window).then(ok=>{if(ok){historyCloseAllowed.add(window.id);window.close();}});});
+  window.on("closed",()=>{historyCloseAllowed.delete(window.id);if(mainWindow===window)mainWindow=BrowserWindow.getAllWindows()[0]||null;});
+  if(process.env.AGENTBRIDGE_DEV_URL)await window.loadURL(process.env.AGENTBRIDGE_DEV_URL);
+  else await window.loadFile(path.join(__dirname,"../dist-renderer/index.html"));
 }
 
 if (primaryInstance) app.whenReady().then(createWindow);

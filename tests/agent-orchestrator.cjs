@@ -55,6 +55,7 @@ Module._load = function(request, parent, main) {
   if (request === 'electron') return { ipcMain: { handle: (name, fn) => handlers.set(name, fn) } };
   if (request === './agent-relay') return { agentRelayHub: fakeRelay };
   if (request === './runtime-backend') return {
+    acquireCodexTask:async runtimeId=>({runtimeId}),releaseCodexTask:()=>{},
     runCodexBackgroundTurn: fakeCodex,
     cancelCodexBackgroundTurn: async () => {
       cancelCodexCount++;
@@ -63,6 +64,7 @@ Module._load = function(request, parent, main) {
     }
   };
   if (request === './claude-local-backend') return {
+    acquireClaudeTask:async runtimeId=>({runtimeId}),releaseClaudeTask:()=>{},
     runClaudeBackgroundTurn: fakeClaude,
     cancelClaudeBackgroundTurn: async () => { cancelClaudeCount++; return { cancelled: true }; }
   };

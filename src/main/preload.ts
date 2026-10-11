@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 contextBridge.exposeInMainWorld("agentBridge", {
   history:{
+    onChanged:(callback:(value:any)=>void)=>{const handler=(_event:unknown,value:any)=>callback(value);ipcRenderer.on('history:changed',handler);return()=>ipcRenderer.removeListener('history:changed',handler);},
     loadDrafts:()=>ipcRenderer.invoke('history:loadDrafts'),saveDrafts:(input:unknown)=>ipcRenderer.invoke('history:saveDrafts',input),
     load:()=>ipcRenderer.invoke('history:load'),save:(input:unknown)=>ipcRenderer.invoke('history:save',input),
     flushed:(id:string,ok:boolean)=>ipcRenderer.send('history:flushed',id,ok),
@@ -19,6 +20,8 @@ contextBridge.exposeInMainWorld("agentBridge", {
     onEvent:(callback:(value:any)=>void)=>{const handler=(_event:unknown,value:any)=>callback(value);ipcRenderer.on('network:event',handler);return()=>ipcRenderer.removeListener('network:event',handler);}
   },
   runtime: {
+    acquireTask: (input:unknown)=>ipcRenderer.invoke('runtime:acquireTask',input),
+    releaseTask: (runtimeId:string,requestId:string)=>ipcRenderer.invoke('runtime:releaseTask',runtimeId,requestId),
     connect: (input: unknown) => ipcRenderer.invoke("runtime:connect", input),
     disconnect: (runtimeId: string) => ipcRenderer.invoke("runtime:disconnect", runtimeId),
     permission: (runtimeId:string,mode:string)=>ipcRenderer.invoke("runtime:permission",runtimeId,mode),
@@ -38,6 +41,8 @@ contextBridge.exposeInMainWorld("agentBridge", {
     }
   },
   claude: {
+    acquireTask: (input:unknown)=>ipcRenderer.invoke('claude:acquireTask',input),
+    releaseTask: (runtimeId:string,requestId:string)=>ipcRenderer.invoke('claude:releaseTask',runtimeId,requestId),
     quota:(id:string)=>ipcRenderer.invoke("claude:quota",id),
     login: (input:unknown)=>ipcRenderer.invoke("claude:login",input),
     connect: (input: unknown) => ipcRenderer.invoke("claude:connect", input),

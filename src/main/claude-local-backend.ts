@@ -1,3 +1,4 @@
+import {TaskRuntimePool} from './task-runtime-pool';
 import {connectNetwork} from './connection-network';
 import {permissionMode} from "./permission-policy";
 import { ipcMain, shell, type BrowserWindow } from "electron";
@@ -29,6 +30,9 @@ export interface ClaudeLocalDependencies {
 }
 interface Pending { isQuestion:boolean; resolve(answer: { allow: boolean; updatedInput?: Record<string, unknown> }): void; input: Record<string, unknown>; questions?: any[]; dispose(): void }
 interface Runtime { sendPending?:boolean;network?:any; conn?:Client;forward?:LoopbackForward;hostName?:string;hostKey?:string;cli: ClaudeLocalRuntime; host?: LocalToolHost; pending: Map<string, Pending>; permissionMode: ClaudePermissionMode; cwd: string; closed: boolean; backgroundTextOnly?: boolean; deps: ClaudeLocalDependencies }
+let taskPool:TaskRuntimePool<any>;
+export const acquireClaudeTask=(rootId:string,taskId:string,requestId:string)=>taskPool.acquire(rootId,taskId,requestId);
+export const releaseClaudeTask=(id:string,requestId:string)=>taskPool.release(id,requestId);
 const runtimes = new Map<string, Runtime>();
 function get(id: string) { const runtime = runtimes.get(id); if (!runtime || runtime.closed) throw new Error("Claude 本機連線已中斷，請重新連線。"); return runtime; }
 function emit(runtime: Runtime, event: any) { runtime.deps.emit("claude:event", { runtimeId: runtime.cli.id, ...(runtime.cli.activeRequestId ? { requestId: runtime.cli.activeRequestId } : {}), ...event }); }
@@ -95,6 +99,10 @@ export async function claudeComputerDiagnostics(id:string){return get(id).host?.
 export async function claudeToolHealth(id:string){return get(id).host?.toolHealth();}
 
 export function registerClaudeLocalBackend(deps: ClaudeLocalDependencies) {
+  const pool=new TaskRuntimePool<any>(async id=>{const runtime=runtimes.get(id);if(runtime)await close(runtime);});
+  taskPool=pool;
+  const emitEvent=deps.emit;
+  deps={...deps,emit:(channel,payload:any)=>{if(payload.type==='done')pool.release(payload.runtimeId,payload.requestId);if(payload.type==='closed')pool.forget(payload.runtimeId);emitEvent(channel,payload);}};
   ipcMain.handle("claude:login",async(_event,input:any={})=>{
     const executable=await findClaudeExecutable(input.executable);
     const quote=(value:string)=>"'"+value.replace(/'/g,"'\\''")+"'";
@@ -147,7 +155,17 @@ export function registerClaudeLocalBackend(deps: ClaudeLocalDependencies) {
     try { await cli.start();const catalog=await cli.extensions();if(remote&&catalog.mcp.some((server:any)=>server.name!=="agentbridge_mac"))throw new Error("Claude 載入了非 Mac 工具，已停止這次連線。");runtimes.set(cli.id, runtime); return snapshot(runtime); }
     catch (error) { await cli.stop();forward?.stop();conn?.end();await host?.stop();if(input.profile?.networkMode!=='direct'&&input.profile?.networkMode!=='relay'&&network?.transport==='tailscale-ssh'&&input.profile?.relayUrl&&/timeout|timed out|handshake|中斷|結束/i.test(String(error)))return connectClaude(_event,{...input,profile:{...input.profile,networkMode:'relay'}});throw error; }
   };
-  ipcMain.handle('claude:connect',connectClaude);
+  ipcMain.handle('claude:connect',async(event,input:any)=>{
+    const result=await connectClaude(event,input);
+    if(result.runtimeId)pool.register(result,()=>connectClaude(event,{...input,permissionMode:runtimes.get(result.runtimeId)?.permissionMode||input.permissionMode}));
+    if(result.runtimeId)event.sender?.once('destroyed',()=>{void pool.disconnect(result.runtimeId);});
+    return result;
+  });
+  ipcMain.handle('claude:acquireTask',async(_event,input:any)=>{
+    const leased=await pool.acquire(input.runtimeId,input.taskId,input.requestId);
+    return snapshot(get(leased.runtimeId));
+  });
+  ipcMain.handle('claude:releaseTask',(_event,id:string,requestId:string)=>{if(!runtimes.get(id)?.cli.busy)pool.release(id,requestId);});
   ipcMain.handle('claude:permission',(_event,id:string,value:unknown)=>{
     const runtime=get(id),mode=permissionMode(value);runtime.cli.setPermissionMode(mode);runtime.permissionMode=mode;runtime.host?.setFullFilesystemAccess(mode==='full');
     if(runtime.permissionMode==='full')for(const pending of [...runtime.pending.values()])if(!pending.isQuestion)pending.resolve({allow:runtime.cli.busy&&!runtime.backgroundTextOnly});
@@ -210,5 +228,5 @@ export function registerClaudeLocalBackend(deps: ClaudeLocalDependencies) {
     pending.resolve({ allow: input.decision === "accept" && runtime.cli.busy && !runtime.closed, updatedInput });
     return { resolved: true };
   });
-  ipcMain.handle("claude:disconnect", async (_event, id: string) => { const runtime = runtimes.get(id); if (runtime) await close(runtime); });
+  ipcMain.handle("claude:disconnect", async (_event, id: string) => { await pool.disconnect(id);const runtime = runtimes.get(id); if (runtime) await close(runtime); });
 }

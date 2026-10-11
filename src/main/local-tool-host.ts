@@ -43,6 +43,8 @@ const object = (value: unknown): value is Record<string, unknown> => !!value && 
  * Native exec-server remains responsible for shell/PTY and its own approval policy.
  */
 const liveHosts=new Set<LocalToolHost>();
+const browserProfiles=new Set<string>();
+let desktopOwner:LocalToolHost|undefined;
 export const hasLiveLocalToolHosts=()=>liveHosts.size>0;
 export class LocalToolHost {
   private server?: http.Server;
@@ -60,6 +62,7 @@ export class LocalToolHost {
   private generation = 0;
   private starting = false;
   private core?: AgentCoreTools;
+  private browserProfile?:string;
   constructor(private options: LocalToolHostOptions) {}
 
   async start() {
@@ -142,6 +145,7 @@ export class LocalToolHost {
     this.generation++;
     this.core?.cancel();
     for (const controller of this.active) controller.abort();
+    if(desktopOwner===this)desktopOwner=undefined;
   }
   async stop() {
     this.cancelActive();
@@ -157,6 +161,7 @@ export class LocalToolHost {
     this.entries.clear();
     if (server?.listening) await new Promise<void>(resolve => server.close(() => resolve()));
     this.port = 0;liveHosts.delete(this);
+    if(this.browserProfile){browserProfiles.delete(this.browserProfile);this.browserProfile=undefined;}
   }
   private registerAgentRelay(role: AgentRelayRole) {
     const add = (name: string, description: string, properties: Record<string, unknown>, required: string[], invoke: Entry["invoke"]) => {
@@ -258,13 +263,28 @@ export class LocalToolHost {
   }
   private async registerProxy(category: "computer" | "browser", command?: LocalToolCommand) {
     if (!command) { this.unavailable.push(category); return; }
+    if(category==='browser'){
+      const args=[...(command.args||[])],index=args.indexOf('--user-data-dir');
+      if(index>=0&&args[index+1]){
+        if(!this.browserProfile){const base=args[index+1];this.browserProfile=browserProfiles.has(base)?base+'-task-'+randomBytes(12).toString('hex'):base;browserProfiles.add(this.browserProfile);}
+        args[index+1]=this.browserProfile;
+        const output=args.indexOf('--output-dir');if(output>=0&&args[output+1])args[output+1]=path.join(args[output+1],path.basename(this.browserProfile));
+        command={...command,args};
+      }
+    }
     const child = new LocalToolStdio(command, this.options.requestTimeoutMs || 60_000);
     this.children.set(category, child);
     try {
       const tools = await child.start();
       for (const original of tools) {
         const name = `mac_${category}_${original.name}`;
-        this.entries.set(name, { category, tool: { ...original, name, description: `[Executes on this Mac] ${original.description || original.name}` }, invoke: (args, signal) => child.call(original.name, args, signal) });
+        this.entries.set(name, { category, tool: { ...original, name, description: `[Executes on this Mac] ${original.description || original.name}` }, invoke: (args, signal) => {
+          if(category==='computer'&&original.name!=='doctor'){
+            if(desktopOwner&&desktopOwner!==this)throw new Error('另一個任務正在操作 Mac 桌面。請等待它完成或停止後，重新讀取畫面再操作；其他推理、檔案與獨立瀏覽器任務仍可繼續。');
+            desktopOwner=this;
+          }
+          return child.call(original.name,args,signal);
+        } });
       }
     } catch { this.unavailable.push(category); await child.stop(); }
   }
